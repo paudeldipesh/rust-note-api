@@ -1,4 +1,10 @@
-use actix_web::{App, HttpServer};
+use actix::{Addr, SyncArbiter};
+use actix_web::{web::Data, App, HttpServer};
+use diesel::{
+    r2d2::{ConnectionManager, Pool},
+    PgConnection,
+};
+use utils::db::{get_pool, AppState, DbActor};
 mod models;
 mod routes;
 mod schema;
@@ -9,10 +15,20 @@ async fn main() -> std::io::Result<()> {
     let address: String = (*utils::constants::ADDRESS).clone();
     let port: u16 = (*utils::constants::PORT).clone();
 
+    let db_url: String = (*utils::constants::DATABASE_URL).clone();
+    let pool: Pool<ConnectionManager<PgConnection>> = get_pool(&db_url);
+    let db_addr: Addr<DbActor> = SyncArbiter::start(5, move || DbActor(pool.clone()));
+
     println!("Server running at http://{}:{}", address, port);
 
-    HttpServer::new(|| App::new().configure(routes::test_routes::configuration))
-        .bind((address, port))?
-        .run()
-        .await
+    HttpServer::new(move || {
+        App::new()
+            .app_data(Data::new(AppState {
+                db: db_addr.clone(),
+            }))
+            .configure(routes::test_routes::configuration)
+    })
+    .bind((address, port))?
+    .run()
+    .await
 }
