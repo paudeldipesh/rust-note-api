@@ -27,6 +27,7 @@ async fn main() -> std::io::Result<()> {
                 db: db_addr.clone(),
             }))
             .configure(routes::test_routes::configuration)
+            .configure(routes::note_routes::configuration)
     })
     .bind((address, port))?
     .run()
