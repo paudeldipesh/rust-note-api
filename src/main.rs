@@ -1,15 +1,6 @@
-use actix_web::{get, web, App, HttpServer, Responder};
+use actix_web::{App, HttpServer};
+mod routes;
 mod utils;
-
-#[get("/")]
-async fn index() -> impl Responder {
-    "Hello, World!"
-}
-
-#[get("/{name}")]
-async fn hello(name: web::Path<String>) -> impl Responder {
-    format!("Hello {}!", &name)
-}
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -18,7 +9,7 @@ async fn main() -> std::io::Result<()> {
 
     println!("Server running at http://{}:{}", address, port);
 
-    HttpServer::new(|| App::new().service(index).service(hello))
+    HttpServer::new(|| App::new().configure(routes::test_routes::configuration))
         .bind((address, port))?
         .run()
         .await
