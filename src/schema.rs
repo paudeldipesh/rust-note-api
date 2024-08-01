@@ -27,7 +27,4 @@ diesel::table! {
 
 diesel::joinable!(notes -> users (created_by));
 
-diesel::allow_tables_to_appear_in_same_query!(
-    notes,
-    users,
-);
+diesel::allow_tables_to_appear_in_same_query!(notes, users,);
