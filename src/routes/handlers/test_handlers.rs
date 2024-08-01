@@ -1,5 +1,10 @@
 use actix_web::{get, web, Responder};
 
+#[get("/")]
+pub async fn home() -> impl Responder {
+    "Welcome to Actix Web!"
+}
+
 #[get("/hello-world")]
 pub async fn index() -> impl Responder {
     "Hello, World!"
