@@ -19,6 +19,15 @@ pub struct FetchUserNotes {
 pub struct FetchAllNotes;
 
 #[derive(Message)]
+#[rtype(result = "QueryResult<User>")]
+pub struct CreateUser {
+    pub first_name: String,
+    pub last_name: String,
+    pub username: String,
+    pub email: String,
+}
+
+#[derive(Message)]
 #[rtype(result = "QueryResult<Note>")]
 pub struct CreateNote {
     pub title: String,

@@ -1,6 +1,4 @@
-use super::messages::{
-    CreateNote, DeleteNote, FetchAllNotes, FetchUser, FetchUserNotes, UpdateNote,
-};
+use super::messages::*;
 use crate::utils::db::{AppState, DbActor};
 use actix::Addr;
 use actix_web::{
@@ -10,6 +8,14 @@ use actix_web::{
 };
 use chrono::{DateTime, Utc};
 use serde::Deserialize;
+
+#[derive(Deserialize)]
+pub struct CreateUserBody {
+    pub first_name: String,
+    pub last_name: String,
+    pub username: String,
+    pub email: String,
+}
 
 #[derive(Deserialize)]
 #[allow(dead_code)]
@@ -23,6 +29,27 @@ pub struct CreateNoteBody {
 pub struct UpdateNoteBody {
     pub title: Option<String>,
     pub content: Option<String>,
+}
+
+#[post("/user")]
+pub async fn create_user(state: Data<AppState>, body: Json<CreateUserBody>) -> impl Responder {
+    let db: Addr<DbActor> = state.as_ref().db.clone();
+
+    match db
+        .send(CreateUser {
+            first_name: body.first_name.clone(),
+            last_name: body.last_name.clone(),
+            username: body.username.clone(),
+            email: body.email.clone(),
+        })
+        .await
+    {
+        Ok(Ok(user)) => HttpResponse::Ok().json(user),
+        Ok(Err(_)) => HttpResponse::InternalServerError()
+            .json(serde_json::json!({ "message": "Failed to create user" })),
+        _ => HttpResponse::InternalServerError()
+            .json(serde_json::json!({ "message": "Unable to create user" })),
+    }
 }
 
 #[get("/users")]
