@@ -1,5 +1,7 @@
 use crate::models::{Note, User};
 use actix::Message;
+use chrono::offset::Utc;
+use chrono::DateTime;
 use diesel::QueryResult;
 
 #[derive(Message)]
@@ -18,4 +20,5 @@ pub struct CreateNote {
     pub title: String,
     pub content: String,
     pub created_by: i32,
+    pub created_on: DateTime<Utc>,
 }

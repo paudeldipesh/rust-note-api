@@ -6,6 +6,7 @@ use actix_web::{
     web::{Data, Json, Path},
     HttpResponse, Responder,
 };
+use chrono::{DateTime, Utc};
 use serde::Deserialize;
 
 #[derive(Deserialize)]
@@ -13,6 +14,7 @@ use serde::Deserialize;
 pub struct CreateNoteBody {
     pub title: String,
     pub content: String,
+    pub created_on: Option<DateTime<Utc>>,
 }
 
 #[get("/users")]
@@ -49,15 +51,18 @@ pub async fn create_user_notes(
 
     let db: Addr<DbActor> = state.as_ref().db.clone();
 
+    let created_on: DateTime<Utc> = Utc::now();
+
     match db
         .send(CreateNote {
             title: body.title.to_string(),
             content: body.content.to_string(),
             created_by: id,
+            created_on,
         })
         .await
     {
-        Ok(Ok(info)) => HttpResponse::Ok().json(info),
+        Ok(Ok(note)) => HttpResponse::Ok().json(note),
         _ => HttpResponse::InternalServerError().json("Failed to create article"),
     }
 }

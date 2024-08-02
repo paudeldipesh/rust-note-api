@@ -3,8 +3,7 @@
 #![allow(unused)]
 #![allow(clippy::all)]
 
-use chrono::offset::Utc;
-use chrono::DateTime;
+use chrono::{DateTime, Utc};
 use diesel::Queryable;
 use serde::Serialize;
 
@@ -14,7 +13,7 @@ pub struct Note {
     pub title: String,
     pub content: String,
     pub created_by: i32,
-    #[serde(skip_serializing)]
+    // #[serde(skip_serializing)]
     pub created_on: Option<DateTime<Utc>>,
 }
 

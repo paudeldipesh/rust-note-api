@@ -48,6 +48,7 @@ impl Handler<CreateNote> for DbActor {
             title: msg.title,
             content: msg.content,
             created_by: msg.created_by,
+            created_on: msg.created_on,
         };
 
         diesel::insert_into(notes)
