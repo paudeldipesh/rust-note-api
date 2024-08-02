@@ -1,4 +1,4 @@
-use super::handlers::note_handlers::*;
+use crate::routes::handlers::note_handlers::note_handlers::*;
 use actix_web::web;
 
 pub fn configuration(configure: &mut web::ServiceConfig) {
