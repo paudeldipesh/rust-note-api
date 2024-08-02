@@ -6,6 +6,9 @@ pub fn configuration(configure: &mut web::ServiceConfig) {
         web::scope("/api")
             .service(fetch_users)
             .service(fetch_user_notes)
-            .service(create_user_notes),
+            .service(create_user_notes)
+            .service(update_user_note)
+            .service(delete_user_notes)
+            .service(fetch_all_notes),
     );
 }
