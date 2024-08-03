@@ -1,10 +1,13 @@
 use super::messages::*;
-use crate::utils::db::{AppState, DbActor};
+use crate::utils::{
+    db::{AppState, DbActor},
+    jwt::Claims,
+};
 use actix::Addr;
 use actix_web::{
     delete, get, patch, post,
     web::{Data, Json, Path},
-    HttpResponse, Responder,
+    HttpMessage, HttpRequest, HttpResponse, Responder,
 };
 use chrono::{DateTime, Utc};
 use serde::Deserialize;
@@ -49,16 +52,22 @@ pub async fn fetch_all_notes(state: Data<AppState>) -> impl Responder {
     }
 }
 
-#[get("/user/{id}/notes")]
-pub async fn fetch_user_notes(state: Data<AppState>, path: Path<i32>) -> impl Responder {
-    let id: i32 = path.into_inner();
+#[get("/user/notes")]
+pub async fn fetch_user_notes(state: Data<AppState>, req: HttpRequest) -> impl Responder {
+    let claims: Claims = match req.extensions().get::<Claims>() {
+        Some(claims) => claims.clone(),
+        None => {
+            return HttpResponse::Unauthorized()
+                .json(serde_json::json!({ "message": "Unauthorized access" }));
+        }
+    };
 
     let db: Addr<DbActor> = state.as_ref().db.clone();
 
-    match db.send(FetchUserNotes { user_id: id }).await {
+    match db.send(FetchUserNotes { user_id: claims.id }).await {
         Ok(Ok(notes)) => HttpResponse::Ok().json(notes),
         Ok(Err(_)) => HttpResponse::NotFound()
-            .json(serde_json::json!({ "message": format!("No notes for user {id}") })),
+            .json(serde_json::json!({ "message": format!("No notes for user {}", claims.id) })),
         _ => HttpResponse::InternalServerError()
             .json(serde_json::json!({ "message": "Unable to retrieve user notes" })),
     }
