@@ -12,3 +12,4 @@ lazy_static = "1.5.0"
 serde = { version = "1.0.145", features = ["derive"] }
 serde_json = "1.0.121"
 diesel = { version = "2.2.2", features = ["postgres", "r2d2", "chrono"] }
+jsonwebtoken = "9.3.0"
