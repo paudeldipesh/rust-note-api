@@ -28,6 +28,7 @@ async fn main() -> std::io::Result<()> {
             }))
             .configure(routes::test_routes::test_routes::configuration)
             .configure(routes::note_routes::note_routes::configuration)
+            .configure(routes::auth_routes::auth_routes::configuration)
     })
     .bind((address, port))?
     .run()
