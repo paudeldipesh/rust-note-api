@@ -156,18 +156,41 @@ pub async fn update_user_note(
     }
 }
 
-#[delete("/user/{id}/note/{note_id}")]
-pub async fn delete_user_notes(state: Data<AppState>, path: Path<(i32, i32)>) -> impl Responder {
-    let (_, note_id) = path.into_inner();
+#[delete("/user/note/delete/{note_id}")]
+pub async fn delete_user_note(
+    state: Data<AppState>,
+    req: HttpRequest,
+    path: Path<i32>,
+) -> impl Responder {
+    let note_id: i32 = path.into_inner();
+
+    let claims: Claims = match req.extensions().get::<Claims>() {
+        Some(claims) => claims.clone(),
+        None => {
+            return HttpResponse::Unauthorized()
+                .json(serde_json::json!({ "message": "Unauthorized access" }));
+        }
+    };
 
     let db: Addr<DbActor> = state.as_ref().db.clone();
 
-    match db.send(DeleteNote { note_id }).await {
-        Ok(Ok(rows_affected)) if rows_affected > 0 => HttpResponse::Ok()
-            .json(serde_json::json!({ "message": format!("Deleted note {note_id}") })),
-        Ok(_) => HttpResponse::NotFound()
-            .json(serde_json::json!({ "message": format!("Note {note_id} not found") })),
-        _ => HttpResponse::InternalServerError()
-            .json(serde_json::json!({ "message": "Failed to delete note" })),
+    let existing_note: Option<crate::models::Note> =
+        match db.send(FetchUserNotes { user_id: claims.id }).await {
+            Ok(Ok(notes)) => notes.into_iter().find(|note| note.id == note_id),
+            _ => None,
+        };
+
+    if let Some(_) = existing_note {
+        match db.send(DeleteNote { note_id }).await {
+            Ok(Ok(rows_affected)) if rows_affected > 0 => HttpResponse::Ok()
+                .json(serde_json::json!({ "message": format!("Deleted note {}", note_id) })),
+            Ok(_) => HttpResponse::NotFound()
+                .json(serde_json::json!({ "message": format!("Note {} not found", note_id) })),
+            _ => HttpResponse::InternalServerError()
+                .json(serde_json::json!({ "message": "Failed to delete note" })),
+        }
+    } else {
+        HttpResponse::NotFound()
+            .json(serde_json::json!({ "message": format!("Note {} not found", note_id) }))
     }
 }

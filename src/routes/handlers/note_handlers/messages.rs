@@ -37,7 +37,7 @@ pub struct UpdateNote {
 }
 
 #[derive(Message)]
-#[rtype(result = "QueryResult<usize>")]
+#[rtype(result = "Result<usize, diesel::result::Error>")]
 pub struct DeleteNote {
     pub note_id: i32,
 }

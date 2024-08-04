@@ -91,7 +91,7 @@ impl Handler<UpdateNote> for DbActor {
 }
 
 impl Handler<DeleteNote> for DbActor {
-    type Result = QueryResult<usize>;
+    type Result = Result<usize, diesel::result::Error>;
 
     fn handle(&mut self, msg: DeleteNote, _ctx: &mut Self::Context) -> Self::Result {
         let mut connection = self
