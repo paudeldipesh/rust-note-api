@@ -46,13 +46,9 @@ cd  rust-note-api
 
 ```json
 {
-  "first_name": "Dipesh",
-
-  "last_name": "Paudel",
-
   "username": "dipeshpaudel",
-
-  "email": "dipesh@paudel.com"
+  "email": "dipeshpaudel@gmail.com",
+  "password": "dipeshpaudel"
 }
 ```
 
@@ -60,9 +56,8 @@ cd  rust-note-api
 
 ```json
 {
-  "username": "dipeshpaudel",
-
-  "email": "dipesh@paudel.com"
+  "email": "dipeshpaudel@gmail.com",
+  "password": "dipeshpaudel"
 }
 ```
 
@@ -71,7 +66,6 @@ cd  rust-note-api
 ```json
 {
   "title": "Computer",
-
   "content": "An electronic device."
 }
 ```
