@@ -90,6 +90,7 @@ pub async fn create_user_notes(
     let db: Addr<DbActor> = state.as_ref().db.clone();
 
     let created_on: DateTime<Utc> = Utc::now();
+    let updated_on: DateTime<Utc> = Utc::now();
 
     match db
         .send(CreateNote {
@@ -97,6 +98,7 @@ pub async fn create_user_notes(
             content: body.content.to_string(),
             created_by: claims.id,
             created_on,
+            updated_on,
         })
         .await
     {
@@ -135,12 +137,15 @@ pub async fn update_user_note(
         let updated_title: String = body.title.clone().unwrap_or(note.title);
         let updated_content: String = body.content.clone().unwrap_or(note.content);
 
+        let updated_on: DateTime<Utc> = Utc::now();
+
         match db
             .send(UpdateNote {
                 id: note_id,
                 title: updated_title,
                 content: updated_content,
                 created_by: claims.id,
+                updated_on,
             })
             .await
         {

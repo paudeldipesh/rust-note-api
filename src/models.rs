@@ -13,15 +13,16 @@ pub struct Note {
     pub title: String,
     pub content: String,
     pub created_by: i32,
-    // #[serde(skip_serializing)]
     pub created_on: Option<DateTime<Utc>>,
+    pub updated_on: Option<DateTime<Utc>>,
 }
 
 #[derive(Queryable, Debug, Serialize)]
 pub struct User {
+    #[serde(skip_serializing)]
     pub id: i32,
-    pub first_name: String,
-    pub last_name: String,
     pub username: String,
     pub email: String,
+    #[serde(skip_serializing)]
+    pub password: String,
 }

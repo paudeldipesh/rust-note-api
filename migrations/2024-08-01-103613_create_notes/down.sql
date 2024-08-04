@@ -1,3 +1,4 @@
 -- This file should undo anything in `up.sql`
-DROP TABLE users,
-notes;
+DROP TABLE notes;
+
+DROP TABLE users;

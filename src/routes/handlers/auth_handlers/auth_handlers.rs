@@ -13,10 +13,9 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize)]
 pub struct CreateUserBody {
-    pub first_name: String,
-    pub last_name: String,
     pub username: String,
     pub email: String,
+    pub password: String,
 }
 
 #[post("/register")]
@@ -25,10 +24,9 @@ pub async fn register_user(state: Data<AppState>, body: Json<CreateUserBody>) ->
 
     match db
         .send(CreateUser {
-            first_name: body.first_name.clone(),
-            last_name: body.last_name.clone(),
             username: body.username.clone(),
             email: body.email.clone(),
+            password: body.password.clone(),
         })
         .await
     {
@@ -43,7 +41,7 @@ pub async fn register_user(state: Data<AppState>, body: Json<CreateUserBody>) ->
 #[derive(Deserialize)]
 pub struct LoginUserBody {
     pub email: String,
-    pub username: String,
+    pub password: String,
 }
 
 #[derive(Serialize)]
@@ -59,7 +57,7 @@ pub async fn login_user(state: Data<AppState>, body: Json<LoginUserBody>) -> imp
     match db
         .send(LoginUser {
             email: body.email.clone(),
-            username: body.username.clone(),
+            password: body.password.clone(),
         })
         .await
     {
@@ -79,7 +77,7 @@ pub async fn login_user(state: Data<AppState>, body: Json<LoginUserBody>) -> imp
             }
         }
         Ok(Err(_)) => HttpResponse::Unauthorized()
-            .json(serde_json::json!({ "message": "Invalid email or username" })),
+            .json(serde_json::json!({ "message": "Invalid email or password" })),
         _ => HttpResponse::InternalServerError()
             .json(serde_json::json!({ "message": "Unable to login user" })),
     }

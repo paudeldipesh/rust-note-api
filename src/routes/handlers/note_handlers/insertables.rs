@@ -10,4 +10,5 @@ pub struct NewNote {
     pub content: String,
     pub created_by: i32,
     pub created_on: DateTime<Utc>,
+    pub updated_on: DateTime<Utc>,
 }

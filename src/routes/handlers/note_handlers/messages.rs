@@ -25,6 +25,7 @@ pub struct CreateNote {
     pub content: String,
     pub created_by: i32,
     pub created_on: DateTime<Utc>,
+    pub updated_on: DateTime<Utc>,
 }
 
 #[derive(Message)]
@@ -34,6 +35,7 @@ pub struct UpdateNote {
     pub title: String,
     pub content: String,
     pub created_by: i32,
+    pub updated_on: DateTime<Utc>,
 }
 
 #[derive(Message)]

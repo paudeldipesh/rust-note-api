@@ -16,10 +16,9 @@ impl Handler<CreateUser> for DbActor {
             .expect("Create User: Unable to establish connection");
 
         let new_user: NewUser = NewUser {
-            first_name: msg.first_name,
-            last_name: msg.last_name,
             username: msg.username,
             email: msg.email,
+            password: msg.password,
         };
 
         diesel::insert_into(users)
@@ -39,7 +38,7 @@ impl Handler<LoginUser> for DbActor {
 
         users
             .filter(email.eq(&msg.email))
-            .filter(username.eq(&msg.username))
+            .filter(password.eq(&msg.password))
             .first::<User>(&mut connection)
     }
 }

@@ -62,11 +62,19 @@ impl Handler<CreateNote> for DbActor {
             content: msg.content,
             created_by: msg.created_by,
             created_on: msg.created_on,
+            updated_on: msg.updated_on,
         };
 
         diesel::insert_into(notes)
             .values(new_note)
-            .returning((note_id, title, content, created_by, created_on.nullable()))
+            .returning((
+                note_id,
+                title,
+                content,
+                created_by,
+                created_on.nullable(),
+                updated_on.nullable(),
+            ))
             .get_result::<Note>(&mut connection)
     }
 }
@@ -85,6 +93,7 @@ impl Handler<UpdateNote> for DbActor {
                 title.eq(msg.title),
                 content.eq(msg.content),
                 created_by.eq(msg.created_by),
+                updated_on.eq(msg.updated_on),
             ))
             .get_result::<Note>(&mut connection)
     }
