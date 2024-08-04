@@ -1,6 +1,6 @@
 # Rust Note API
 
-A simple RESTful API for managing notes, built with Rust using Actix Web, Diesel, and PostgreSQL.
+A simple RESTful API for managing notes, secured with JWT authentication, built with Rust using Actix Web, Diesel, and PostgreSQL.
 
 ## Features
 
@@ -42,7 +42,7 @@ cd  rust-note-api
 
 ## POST Methods:
 
-### Endpoint: /api/user
+### Endpoint: /user/register
 
 ```json
 {
@@ -56,7 +56,17 @@ cd  rust-note-api
 }
 ```
 
-### Endpoint: /api/user/{user_id}/note
+### Endpoint: /user/login
+
+```json
+{
+  "username": "dipeshpaudel",
+
+  "email": "dipesh@paudel.com"
+}
+```
+
+### Endpoint: /secure/api/user/note
 
 ```json
 {
@@ -78,11 +88,11 @@ cd  rust-note-api
 
 ### Endpoint: /api/notes
 
-### Endpoint: /api/user/{user_id}/notes
+### Endpoint: /secure/api/user/notes
 
-## PATCH Methods:
+## PATCH Method:
 
-### Endpoint: /api/user/{user_id}/note/{note_id}
+### Endpoint: /secure/api/user/note/update/{note_id}
 
 ```json
 {
@@ -90,6 +100,6 @@ cd  rust-note-api
 }
 ```
 
-## DELETE Methods:
+## DELETE Method:
 
-### Endpoint: /api/user/{random_user_id}/note/{note_id}
+### Endpoint: /secure/api/user/note/delete/{note_id}
