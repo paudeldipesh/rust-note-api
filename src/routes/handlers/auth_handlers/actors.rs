@@ -15,7 +15,7 @@ impl Handler<CreateUser> for DbActor {
             .get()
             .expect("Create User: Unable to establish connection");
 
-        let new_user = NewUser {
+        let new_user: NewUser = NewUser {
             first_name: msg.first_name,
             last_name: msg.last_name,
             username: msg.username,

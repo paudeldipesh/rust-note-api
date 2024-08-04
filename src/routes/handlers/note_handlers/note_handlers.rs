@@ -73,13 +73,19 @@ pub async fn fetch_user_notes(state: Data<AppState>, req: HttpRequest) -> impl R
     }
 }
 
-#[post("/user/{id}/note")]
+#[post("/user/note")]
 pub async fn create_user_notes(
     state: Data<AppState>,
-    path: Path<i32>,
+    req: HttpRequest,
     body: Json<CreateNoteBody>,
 ) -> impl Responder {
-    let id: i32 = path.into_inner();
+    let claims: Claims = match req.extensions().get::<Claims>() {
+        Some(claims) => claims.clone(),
+        None => {
+            return HttpResponse::Unauthorized()
+                .json(serde_json::json!({"message": "Unauthorized access"}));
+        }
+    };
 
     let db: Addr<DbActor> = state.as_ref().db.clone();
 
@@ -89,7 +95,7 @@ pub async fn create_user_notes(
         .send(CreateNote {
             title: body.title.to_string(),
             content: body.content.to_string(),
-            created_by: id,
+            created_by: claims.id,
             created_on,
         })
         .await
@@ -100,20 +106,30 @@ pub async fn create_user_notes(
     }
 }
 
-#[patch("/user/{id}/note/{note_id}")]
+#[patch("/user/note/update/{note_id}")]
 pub async fn update_user_note(
     state: Data<AppState>,
-    path: Path<(i32, i32)>,
+    req: HttpRequest,
+    path: Path<i32>,
     body: Json<UpdateNoteBody>,
 ) -> impl Responder {
-    let (user_id, note_id) = path.into_inner();
+    let note_id: i32 = path.into_inner();
+
+    let claims: Claims = match req.extensions().get::<Claims>() {
+        Some(claims) => claims.clone(),
+        None => {
+            return HttpResponse::Unauthorized()
+                .json(serde_json::json!({ "message": "Unauthorized access" }));
+        }
+    };
 
     let db: Addr<DbActor> = state.as_ref().db.clone();
 
-    let existing_note = match db.send(FetchUserNotes { user_id }).await {
-        Ok(Ok(notes)) => notes.into_iter().find(|note| note.id == note_id),
-        _ => None,
-    };
+    let existing_note: Option<crate::models::Note> =
+        match db.send(FetchUserNotes { user_id: claims.id }).await {
+            Ok(Ok(notes)) => notes.into_iter().find(|note| note.id == note_id),
+            _ => None,
+        };
 
     if let Some(note) = existing_note {
         let updated_title: String = body.title.clone().unwrap_or(note.title);
@@ -124,7 +140,7 @@ pub async fn update_user_note(
                 id: note_id,
                 title: updated_title,
                 content: updated_content,
-                created_by: user_id,
+                created_by: claims.id,
             })
             .await
         {

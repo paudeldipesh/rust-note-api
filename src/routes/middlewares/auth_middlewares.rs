@@ -17,7 +17,7 @@ pub async fn check_auth_middleware(
 
     if auth.is_none() {
         return Err(ErrorUnauthorized(
-            serde_json::json!({ "message": "Unauthorized" }).to_string(),
+            serde_json::json!({ "message": "Unauthorized" }),
         ));
     };
 

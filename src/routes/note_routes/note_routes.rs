@@ -12,7 +12,7 @@ pub fn configuration(configure: &mut web::ServiceConfig) {
                 .service(fetch_all_notes),
         )
         .service(
-            web::scope("secure/api")
+            web::scope("/secure/api")
                 .wrap(from_fn(check_auth_middleware))
                 .service(fetch_user_notes)
                 .service(create_user_notes)
