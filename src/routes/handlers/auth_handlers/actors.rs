@@ -38,7 +38,6 @@ impl Handler<LoginUser> for DbActor {
 
         users
             .filter(email.eq(&msg.email))
-            .filter(password.eq(&msg.password))
             .first::<User>(&mut connection)
     }
 }

@@ -14,5 +14,5 @@ pub struct CreateUser {
 #[rtype(result = "QueryResult<User>")]
 pub struct LoginUser {
     pub email: String,
-    pub password: String,
+    pub _password: String,
 }

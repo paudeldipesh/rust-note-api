@@ -22,11 +22,19 @@ pub struct CreateUserBody {
 pub async fn register_user(state: Data<AppState>, body: Json<CreateUserBody>) -> impl Responder {
     let db: Addr<DbActor> = state.as_ref().db.clone();
 
+    let hashed_password: String = match bcrypt::hash(&body.password, bcrypt::DEFAULT_COST) {
+        Ok(hash) => hash,
+        Err(_) => {
+            return HttpResponse::InternalServerError()
+                .json(serde_json::json!({ "message": "Password hashing failed" }))
+        }
+    };
+
     match db
         .send(CreateUser {
             username: body.username.clone(),
             email: body.email.clone(),
-            password: body.password.clone(),
+            password: hashed_password,
         })
         .await
     {
@@ -57,23 +65,29 @@ pub async fn login_user(state: Data<AppState>, body: Json<LoginUserBody>) -> imp
     match db
         .send(LoginUser {
             email: body.email.clone(),
-            password: body.password.clone(),
+            _password: body.password.clone(),
         })
         .await
     {
         Ok(Ok(user)) => {
-            let token_result = encode_jwt(user.email.clone(), user.id);
-            match token_result {
-                Ok(token) => HttpResponse::Ok().json(serde_json::json!({
-                    "token": token,
-                    "user": LoginUserResponse {
-                        email: user.email,
-                        username: user.username,
-                    }
-                })),
-                Err(e) => HttpResponse::InternalServerError().json(
-                    serde_json::json!({ "message": format!("Failed to generate token: {}", e) }),
-                ),
+            let is_valid = bcrypt::verify(&body.password, &user.password);
+            if is_valid.unwrap_or(false) {
+                let token_result = encode_jwt(user.email.clone(), user.id);
+                match token_result {
+                    Ok(token) => HttpResponse::Ok().json(serde_json::json!({
+                        "token": token,
+                        "user": LoginUserResponse {
+                            email: user.email,
+                            username: user.username,
+                        }
+                    })),
+                    Err(e) => HttpResponse::InternalServerError().json(
+                        serde_json::json!({ "message": format!("Failed to generate token: {}", e) }),
+                    ),
+                }
+            } else {
+                HttpResponse::Unauthorized()
+                    .json(serde_json::json!({ "message": "Invalid email or password" }))
             }
         }
         Ok(Err(_)) => HttpResponse::Unauthorized()

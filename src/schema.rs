@@ -19,14 +19,10 @@ diesel::table! {
         username -> Varchar,
         #[max_length = 100]
         email -> Varchar,
-        #[max_length = 20]
         password -> Varchar,
     }
 }
 
 diesel::joinable!(notes -> users (created_by));
 
-diesel::allow_tables_to_appear_in_same_query!(
-    notes,
-    users,
-);
+diesel::allow_tables_to_appear_in_same_query!(notes, users,);
