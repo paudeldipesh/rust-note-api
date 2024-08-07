@@ -11,19 +11,16 @@ use actix_web::{
 };
 use chrono::{DateTime, Utc};
 use serde::Deserialize;
+use utoipa::ToSchema;
 
-#[derive(Deserialize)]
-pub struct CreateNoteBody {
-    pub title: String,
-    pub content: String,
-}
-
-#[derive(Deserialize)]
-pub struct UpdateNoteBody {
-    pub title: Option<String>,
-    pub content: Option<String>,
-}
-
+#[utoipa::path(
+    path = "/api/users",
+    responses(
+        (status = 200, description = "Get all users"),
+        (status = 404, description = "No users found"),
+        (status = 500, description = "Unable to retrieve users"),
+    ),
+)]
 #[get("/users")]
 pub async fn fetch_users(state: Data<AppState>) -> impl Responder {
     let db: Addr<DbActor> = state.as_ref().db.clone();
@@ -38,6 +35,14 @@ pub async fn fetch_users(state: Data<AppState>) -> impl Responder {
     }
 }
 
+#[utoipa::path(
+    path = "/api/notes",
+    responses(
+        (status = 200, description = "Get all notes"),
+        (status = 404, description = "No notes found"),
+        (status = 500, description = "Unable to retrieve notes"),
+    ),
+)]
 #[get("/notes")]
 pub async fn fetch_all_notes(state: Data<AppState>) -> impl Responder {
     let db: Addr<DbActor> = state.as_ref().db.clone();
@@ -52,6 +57,17 @@ pub async fn fetch_all_notes(state: Data<AppState>) -> impl Responder {
     }
 }
 
+#[utoipa::path(
+    path = "/secure/api/user/notes",
+    responses(
+        (status = 200, description = "Get my notes"),
+        (status = 401, description = "Bearer auth required"),
+        (status = 500, description = "Failed to create note"),
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 #[get("/user/notes")]
 pub async fn fetch_user_notes(state: Data<AppState>, req: HttpRequest) -> impl Responder {
     let claims: Claims = match req.extensions().get::<Claims>() {
@@ -73,6 +89,26 @@ pub async fn fetch_user_notes(state: Data<AppState>, req: HttpRequest) -> impl R
     }
 }
 
+#[derive(Deserialize, ToSchema)]
+pub struct CreateNoteBody {
+    #[schema(example = "My Note", required = true)]
+    pub title: String,
+    #[schema(example = "This is my note", required = true)]
+    pub content: String,
+}
+
+#[utoipa::path(
+    path = "/secure/api/user/note",
+    request_body = CreateNoteBody,
+    responses(
+        (status = 200, description = "Create a new user", body = CreateNote),
+        (status = 401, description = "Bearer auth required"),
+        (status = 500, description = "Failed to create note"),
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 #[post("/user/note")]
 pub async fn create_user_notes(
     state: Data<AppState>,
@@ -108,6 +144,26 @@ pub async fn create_user_notes(
     }
 }
 
+#[derive(Deserialize, ToSchema)]
+pub struct UpdateNoteBody {
+    #[schema(example = "My Note")]
+    pub title: Option<String>,
+    #[schema(example = "My Note")]
+    pub content: Option<String>,
+}
+
+#[utoipa::path(
+    path = "/secure/api/user/note/update/{note_id}",
+    request_body = UpdateNoteBody,
+    responses(
+        (status = 200, description = "Update successful"),
+        (status = 401, description = "Bearer auth required"),
+        (status = 500, description = "Failed to update note"),
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 #[patch("/user/note/update/{note_id}")]
 pub async fn update_user_note(
     state: Data<AppState>,
@@ -161,6 +217,17 @@ pub async fn update_user_note(
     }
 }
 
+#[utoipa::path(
+    path = "/secure/api/user/note/delete/{note_id}",
+    responses(
+        (status = 200, description = "Delete note successful"),
+        (status = 401, description = "Bearer auth required"),
+        (status = 500, description = "Failed to delete note"),
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 #[delete("/user/note/delete/{note_id}")]
 pub async fn delete_user_note(
     state: Data<AppState>,

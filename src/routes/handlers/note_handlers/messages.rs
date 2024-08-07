@@ -3,6 +3,7 @@ use actix::Message;
 use chrono::offset::Utc;
 use chrono::DateTime;
 use diesel::QueryResult;
+use utoipa::ToSchema;
 
 #[derive(Message)]
 #[rtype(result = "QueryResult<Vec<User>>")]
@@ -18,7 +19,7 @@ pub struct FetchUserNotes {
 #[rtype(result = "QueryResult<Vec<Note>>")]
 pub struct FetchAllNotes;
 
-#[derive(Message)]
+#[derive(Message, ToSchema)]
 #[rtype(result = "QueryResult<Note>")]
 pub struct CreateNote {
     pub title: String,
