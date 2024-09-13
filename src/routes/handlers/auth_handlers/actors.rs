@@ -61,3 +61,23 @@ impl Handler<GenerateOTPMessage> for DbActor {
             .get_result::<User>(&mut connection)
     }
 }
+
+impl Handler<VerifyOTPMessage> for DbActor {
+    type Result = QueryResult<User>;
+
+    fn handle(&mut self, msg: VerifyOTPMessage, _ctx: &mut Self::Context) -> Self::Result {
+        let mut connection = self
+            .0
+            .get()
+            .expect("Verify OTP: Unable to establish connection");
+
+        diesel::update(users.filter(email.eq(&msg.email)))
+            .set(GenerateOTPInsertable {
+                opt_verified: msg.opt_verified,
+                opt_enabled: msg.opt_enabled,
+                opt_base32: msg.opt_base32,
+                opt_auth_url: msg.opt_auth_url,
+            })
+            .get_result::<User>(&mut connection)
+    }
+}

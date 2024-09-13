@@ -173,7 +173,7 @@ pub async fn generate_otp_handler(
     let otp_auth_url: String =
         format!("otpauth://totp/{issuer}:{email}?secret={otp_base32}&issuer={issuer}");
 
-    let opt_verified: bool = true;
+    let opt_verified: bool = false;
     let opt_enabled: bool = true;
 
     match db
@@ -193,5 +193,94 @@ pub async fn generate_otp_handler(
         })),
         _ => HttpResponse::InternalServerError()
             .json(serde_json::json!({ "message": "Failed to generate OTP" })),
+    }
+}
+
+#[derive(Deserialize)]
+pub struct VerifyOTPBody {
+    pub otp_token: String,
+}
+
+#[derive(Serialize)]
+pub struct GenericResponse {
+    pub status: String,
+    pub message: String,
+}
+#[post("/otp/verify")]
+pub async fn verify_otp_handler(
+    state: Data<AppState>,
+    req: HttpRequest,
+    body: Json<VerifyOTPBody>,
+) -> impl Responder {
+    let claims: Claims = match req.extensions().get::<Claims>() {
+        Some(claims) => claims.clone(),
+        None => {
+            return HttpResponse::Unauthorized().json(GenericResponse {
+                status: String::from("fail"),
+                message: String::from("unauthorized access"),
+            });
+        }
+    };
+
+    let db: Addr<DbActor> = state.as_ref().db.clone();
+    let user_email: String = claims.email.clone();
+
+    match db
+        .send(LoginUser {
+            email: user_email.clone(),
+            _password: String::new(),
+        })
+        .await
+    {
+        Ok(Ok(user)) => {
+            let otp_base32: String = user.opt_base32.clone().unwrap();
+
+            let totp: TOTP = TOTP::new(
+                Algorithm::SHA1,
+                6,
+                1,
+                30,
+                Secret::Encoded(otp_base32).to_bytes().unwrap(),
+            )
+            .unwrap();
+
+            let is_valid: bool = totp.check_current(&body.otp_token).unwrap();
+
+            if !is_valid {
+                let json_error: GenericResponse = GenericResponse {
+                    status: String::from("fail"),
+                    message: String::from("invalid token"),
+                };
+                return HttpResponse::Forbidden().json(json_error);
+            }
+
+            match db
+                .send(GenerateOTPMessage {
+                    email: user_email,
+                    opt_verified: true,
+                    opt_enabled: true,
+                    opt_base32: user.opt_base32.clone().unwrap(),
+                    opt_auth_url: user.opt_auth_url.clone().unwrap(),
+                })
+                .await
+            {
+                Ok(Ok(updated_user)) => HttpResponse::Ok().json(serde_json::json!({
+                    "otp_verified": true,
+                    "user": updated_user,
+                })),
+                _ => HttpResponse::InternalServerError().json(GenericResponse {
+                    status: String::from("fail"),
+                    message: String::from("failed to update OTP status"),
+                }),
+            }
+        }
+        Ok(Err(_)) => HttpResponse::InternalServerError().json(GenericResponse {
+            status: String::from("fail"),
+            message: String::from("failed to retrieve user"),
+        }),
+        _ => HttpResponse::InternalServerError().json(GenericResponse {
+            status: String::from("fail"),
+            message: String::from("internal server error"),
+        }),
     }
 }
