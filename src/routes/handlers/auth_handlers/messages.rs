@@ -18,6 +18,12 @@ pub struct LoginUser {
     pub _password: String,
 }
 
+#[derive(Message, ToSchema)]
+#[rtype(result = "QueryResult<User>")]
+pub struct LogoutUser {
+    pub email: String,
+}
+
 #[derive(Message)]
 #[rtype(result = "QueryResult<User>")]
 pub struct GenerateOTPMessage {

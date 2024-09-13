@@ -128,6 +128,44 @@ pub async fn login_user(state: Data<AppState>, body: Json<LoginUserBody>) -> imp
 }
 
 #[derive(Deserialize)]
+pub struct LogoutUserBody {
+    pub email: String,
+}
+#[post("/logout")]
+pub async fn logout_user(
+    state: Data<AppState>,
+    req: HttpRequest,
+    body: Json<LogoutUserBody>,
+) -> impl Responder {
+    let claims: Claims = match req.extensions().get::<Claims>() {
+        Some(claims) => claims.clone(),
+        None => {
+            return HttpResponse::Unauthorized()
+                .json(serde_json::json!({"message": "Unauthorized access"}));
+        }
+    };
+
+    if body.email != claims.email {
+        return HttpResponse::Forbidden()
+            .json(serde_json::json!({"message": "Email does not match"}));
+    }
+
+    let db: Addr<DbActor> = state.as_ref().db.clone();
+
+    match db
+        .send(LogoutUser {
+            email: claims.email,
+        })
+        .await
+    {
+        Ok(Ok(_)) => HttpResponse::Ok()
+            .json(serde_json::json!({ "status": "success", "message": "Successfully logged out" })),
+        _ => HttpResponse::InternalServerError()
+            .json(serde_json::json!({ "status": "fail", "message": "Unable to logout user" })),
+    }
+}
+
+#[derive(Deserialize)]
 pub struct GenerateOTPBody {
     pub email: String,
 }
