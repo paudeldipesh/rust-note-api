@@ -27,9 +27,11 @@ pub async fn fetch_users(state: Data<AppState>) -> impl Responder {
 
     match db.send(FetchUser).await {
         Ok(Ok(users)) => HttpResponse::Ok().json(users),
+
         Ok(Err(_)) => {
             HttpResponse::NotFound().json(serde_json::json!({ "message": "No users found" }))
         }
+
         _ => HttpResponse::InternalServerError()
             .json(serde_json::json!({ "message": "Unable to retrieve users" })),
     }

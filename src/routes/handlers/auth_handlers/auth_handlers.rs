@@ -1,4 +1,5 @@
 use super::messages::*;
+use crate::utils::jwt::Claims;
 #[allow(dead_code)]
 use crate::utils::{
     db::{AppState, DbActor},
@@ -8,9 +9,11 @@ use actix::Addr;
 use actix_web::{
     post,
     web::{Data, Json},
-    HttpResponse, Responder,
+    HttpMessage, HttpRequest, HttpResponse, Responder,
 };
+use rand::{rngs::ThreadRng, Rng};
 use serde::{Deserialize, Serialize};
+use totp_rs::{Algorithm, Secret, TOTP};
 use utoipa::ToSchema;
 
 #[derive(Deserialize, ToSchema)]
@@ -121,5 +124,74 @@ pub async fn login_user(state: Data<AppState>, body: Json<LoginUserBody>) -> imp
             .json(serde_json::json!({ "message": "Invalid email or password" })),
         _ => HttpResponse::InternalServerError()
             .json(serde_json::json!({ "message": "Unable to login user" })),
+    }
+}
+
+#[derive(Deserialize)]
+pub struct GenerateOTPBody {
+    pub email: String,
+}
+
+#[post("/otp/generate")]
+pub async fn generate_otp_handler(
+    state: Data<AppState>,
+    req: HttpRequest,
+    body: Json<GenerateOTPBody>,
+) -> impl Responder {
+    let claims: Claims = match req.extensions().get::<Claims>() {
+        Some(claims) => claims.clone(),
+        None => {
+            return HttpResponse::Unauthorized()
+                .json(serde_json::json!({"message": "Unauthorized access"}));
+        }
+    };
+
+    if body.email != claims.email {
+        return HttpResponse::Forbidden()
+            .json(serde_json::json!({"message": "Email does not match."}));
+    }
+
+    let db: Addr<DbActor> = state.as_ref().db.clone();
+
+    let mut rng: ThreadRng = rand::thread_rng();
+    let data_byte: [u8; 21] = rng.gen();
+    let base32_string: String =
+        base32::encode(base32::Alphabet::Rfc4648 { padding: false }, &data_byte);
+
+    let totp: TOTP = TOTP::new(
+        Algorithm::SHA1,
+        6,
+        1,
+        30,
+        Secret::Encoded(base32_string).to_bytes().unwrap(),
+    )
+    .unwrap();
+
+    let otp_base32: String = totp.get_secret_base32();
+    let email: String = claims.email;
+    let issuer: &str = "NoteAPI";
+    let otp_auth_url: String =
+        format!("otpauth://totp/{issuer}:{email}?secret={otp_base32}&issuer={issuer}");
+
+    let opt_verified: bool = true;
+    let opt_enabled: bool = true;
+
+    match db
+        .send(GenerateOTPMessage {
+            email,
+            opt_verified,
+            opt_enabled,
+            opt_auth_url: otp_auth_url.clone(),
+            opt_base32: otp_base32.clone(),
+        })
+        .await
+    {
+        Ok(Ok(_)) => HttpResponse::Ok().json(serde_json::json!({
+            "status": "success",
+            "otp_auth_url": otp_auth_url,
+            "otp_base32": otp_base32,
+        })),
+        _ => HttpResponse::InternalServerError()
+            .json(serde_json::json!({ "message": "Failed to generate OTP" })),
     }
 }

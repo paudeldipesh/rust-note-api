@@ -17,3 +17,13 @@ pub struct LoginUser {
     pub email: String,
     pub _password: String,
 }
+
+#[derive(Message)]
+#[rtype(result = "QueryResult<User>")]
+pub struct GenerateOTPMessage {
+    pub email: String,
+    pub opt_verified: bool,
+    pub opt_enabled: bool,
+    pub opt_base32: String,
+    pub opt_auth_url: String,
+}
