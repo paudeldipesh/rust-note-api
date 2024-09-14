@@ -1,4 +1,4 @@
-use super::insertables::{GenerateOTPInsertable, NewUser};
+use super::insertables::{NewUser, OTPInfoInsertable};
 use super::messages::*;
 use crate::models::User;
 use crate::schema::users::dsl::*;
@@ -27,10 +27,10 @@ impl Handler<CreateUser> for DbActor {
     }
 }
 
-impl Handler<LoginUser> for DbActor {
+impl Handler<LoginAndGetUser> for DbActor {
     type Result = QueryResult<User>;
 
-    fn handle(&mut self, msg: LoginUser, _ctx: &mut Self::Context) -> Self::Result {
+    fn handle(&mut self, msg: LoginAndGetUser, _ctx: &mut Self::Context) -> Self::Result {
         let mut connection = self
             .0
             .get()
@@ -57,17 +57,21 @@ impl Handler<LogoutUser> for DbActor {
     }
 }
 
-impl Handler<GenerateOTPMessage> for DbActor {
+impl Handler<GenerateAndDisableOTPMessage> for DbActor {
     type Result = QueryResult<User>;
 
-    fn handle(&mut self, msg: GenerateOTPMessage, _ctx: &mut Self::Context) -> Self::Result {
+    fn handle(
+        &mut self,
+        msg: GenerateAndDisableOTPMessage,
+        _ctx: &mut Self::Context,
+    ) -> Self::Result {
         let mut connection = self
             .0
             .get()
             .expect("Generate OTP: Unable to establish connection");
 
         diesel::update(users.filter(email.eq(&msg.email)))
-            .set(GenerateOTPInsertable {
+            .set(OTPInfoInsertable {
                 opt_verified: msg.opt_verified,
                 opt_enabled: msg.opt_enabled,
                 opt_base32: msg.opt_base32,
@@ -87,7 +91,7 @@ impl Handler<VerifyOTPMessage> for DbActor {
             .expect("Verify OTP: Unable to establish connection");
 
         diesel::update(users.filter(email.eq(&msg.email)))
-            .set(GenerateOTPInsertable {
+            .set(OTPInfoInsertable {
                 opt_verified: msg.opt_verified,
                 opt_enabled: msg.opt_enabled,
                 opt_base32: msg.opt_base32,

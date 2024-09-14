@@ -12,7 +12,7 @@ pub struct NewUser {
 
 #[derive(Insertable, Serialize, Clone, AsChangeset)]
 #[diesel(table_name=users)]
-pub struct GenerateOTPInsertable {
+pub struct OTPInfoInsertable {
     pub opt_verified: bool,
     pub opt_enabled: bool,
     pub opt_base32: String,

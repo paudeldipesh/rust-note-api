@@ -7,7 +7,7 @@ use crate::utils::{
 };
 use actix::Addr;
 use actix_web::{
-    post,
+    get, post,
     web::{Data, Json},
     HttpMessage, HttpRequest, HttpResponse, Responder,
 };
@@ -80,7 +80,7 @@ pub struct LoginUserResponse {
     path = "/user/login",
     request_body = LoginUserBody,
     responses(
-        (status = 200, description = "Login using credentials, returns bearer token", body = LoginUser),
+        (status = 200, description = "Login using credentials, returns bearer token", body = LoginAndGetUser),
         (status = 401, description = "Basic auth required"),
         (status = 500, description = "Internal server error"),
     ),
@@ -93,7 +93,7 @@ pub async fn login_user(state: Data<AppState>, body: Json<LoginUserBody>) -> imp
     let db: Addr<DbActor> = state.as_ref().db.clone();
 
     match db
-        .send(LoginUser {
+        .send(LoginAndGetUser {
             email: body.email.clone(),
             _password: body.password.clone(),
         })
@@ -124,6 +124,56 @@ pub async fn login_user(state: Data<AppState>, body: Json<LoginUserBody>) -> imp
             .json(serde_json::json!({ "message": "Invalid email or password" })),
         _ => HttpResponse::InternalServerError()
             .json(serde_json::json!({ "message": "Unable to login user" })),
+    }
+}
+
+#[derive(Deserialize)]
+pub struct GetUserBody {
+    pub email: String,
+    pub password: String,
+}
+#[get("/user")]
+pub async fn get_user(
+    state: Data<AppState>,
+    req: HttpRequest,
+    body: Json<GetUserBody>,
+) -> impl Responder {
+    let claims: Claims = match req.extensions().get::<Claims>() {
+        Some(claims) => claims.clone(),
+        None => {
+            return HttpResponse::Unauthorized()
+                .json(serde_json::json!({"message": "Unauthorized access"}));
+        }
+    };
+
+    if body.email != claims.email {
+        return HttpResponse::Forbidden()
+            .json(serde_json::json!({"message": "Email does not match."}));
+    }
+
+    let db: Addr<DbActor> = state.as_ref().db.clone();
+
+    match db
+        .send(LoginAndGetUser {
+            email: claims.email.clone(),
+            _password: body.password.clone(),
+        })
+        .await
+    {
+        Ok(Ok(user)) => match bcrypt::verify(&body.password, &user.password) {
+            Ok(is_valid) if is_valid => HttpResponse::Ok().json(serde_json::json!({
+                "user": user
+            })),
+            Ok(_) => HttpResponse::Unauthorized()
+                .json(serde_json::json!({ "message": "Invalid email or password" })),
+            Err(_) => HttpResponse::InternalServerError()
+                .json(serde_json::json!({ "message": "Password verification failed" })),
+        },
+
+        Ok(Err(_)) => HttpResponse::Unauthorized()
+            .json(serde_json::json!({ "message": "Invalid email or password" })),
+        _ => HttpResponse::InternalServerError()
+            .json(serde_json::json!({ "message": "Unable to retrieve user" })),
     }
 }
 
@@ -215,7 +265,7 @@ pub async fn generate_otp_handler(
     let opt_enabled: bool = true;
 
     match db
-        .send(GenerateOTPMessage {
+        .send(GenerateAndDisableOTPMessage {
             email,
             opt_verified,
             opt_enabled,
@@ -264,7 +314,7 @@ pub async fn verify_otp_handler(
     let user_email: String = claims.email.clone();
 
     match db
-        .send(LoginUser {
+        .send(LoginAndGetUser {
             email: user_email.clone(),
             _password: String::new(),
         })
@@ -296,7 +346,7 @@ pub async fn verify_otp_handler(
             let opt_enabled: bool = true;
 
             match db
-                .send(GenerateOTPMessage {
+                .send(GenerateAndDisableOTPMessage {
                     email: user_email,
                     opt_verified,
                     opt_enabled,
@@ -360,7 +410,7 @@ pub async fn token_validate_handler(
     let db: Addr<DbActor> = state.as_ref().db.clone();
 
     match db
-        .send(LoginUser {
+        .send(LoginAndGetUser {
             email: user_email.clone(),
             _password: String::new(),
         })
@@ -403,5 +453,50 @@ pub async fn token_validate_handler(
             status: String::from("fail"),
             message: String::from("internal server error"),
         }),
+    }
+}
+
+#[derive(Deserialize)]
+pub struct DisableOTPBody {
+    pub email: String,
+}
+
+#[post("/otp/disable")]
+pub async fn disable_otp_handler(
+    state: Data<AppState>,
+    req: HttpRequest,
+    body: Json<DisableOTPBody>,
+) -> impl Responder {
+    let claims: Claims = match req.extensions().get::<Claims>() {
+        Some(claims) => claims.clone(),
+        None => {
+            return HttpResponse::Unauthorized()
+                .json(serde_json::json!({"message": "Unauthorized access"}));
+        }
+    };
+
+    if body.email != claims.email {
+        return HttpResponse::Forbidden()
+            .json(serde_json::json!({"message": "Email does not match."}));
+    }
+
+    let db: Addr<DbActor> = state.as_ref().db.clone();
+
+    match db
+        .send(GenerateAndDisableOTPMessage {
+            email: claims.email,
+            opt_verified: false,
+            opt_enabled: false,
+            opt_auth_url: String::new(),
+            opt_base32: String::new(),
+        })
+        .await
+    {
+        Ok(Ok(data)) => HttpResponse::Ok().json(serde_json::json!({
+            "status": "success",
+            "data": data,
+        })),
+        _ => HttpResponse::InternalServerError()
+            .json(serde_json::json!({ "message": "Failed to disable OTP" })),
     }
 }
