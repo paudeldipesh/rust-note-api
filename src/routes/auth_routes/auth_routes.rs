@@ -4,7 +4,8 @@ use crate::routes::{
 use actix_web::web;
 use actix_web_lab::middleware::from_fn;
 use auth_handlers::{
-    generate_otp_handler, login_user, logout_user, register_user, verify_otp_handler,
+    generate_otp_handler, login_user, logout_user, register_user, token_validate_handler,
+    verify_otp_handler,
 };
 
 pub fn configuration(configure: &mut web::ServiceConfig) {
@@ -19,6 +20,7 @@ pub fn configuration(configure: &mut web::ServiceConfig) {
                 .wrap(from_fn(check_auth_middleware))
                 .service(generate_otp_handler)
                 .service(verify_otp_handler)
-                .service(logout_user),
+                .service(logout_user)
+                .service(token_validate_handler),
         );
 }
