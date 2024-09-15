@@ -52,16 +52,29 @@ async fn main() -> std::io::Result<()> {
         fetch_user_notes,
         update_user_note,
         delete_user_note,
+        generate_otp_handler,
+        verify_otp_handler,
+        logout_user,
+        token_validate_handler,
+        disable_otp_handler,
+        get_user
     ),
     components(
-        schemas(Claims,
+        schemas(
+            Claims,
             CreateUserBody,
             LoginUserBody,
             CreateNoteBody,
             UpdateNoteBody,
             CreateUser,
             LoginAndGetUser,
+            LogoutUserBody,
             CreateNote,
+            GetUserBody,
+            GenerateOTPBody,
+            VerifyOTPBody,
+            ValidateOTPBody,
+            DisableOTPBody,
         )
     ),
     modifiers(&SecurityAddon)

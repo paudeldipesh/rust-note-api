@@ -7,7 +7,7 @@ use crate::utils::{
 };
 use actix::Addr;
 use actix_web::{
-    get, post,
+    post,
     web::{Data, Json},
     HttpMessage, HttpRequest, HttpResponse, Responder,
 };
@@ -127,12 +127,26 @@ pub async fn login_user(state: Data<AppState>, body: Json<LoginUserBody>) -> imp
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct GetUserBody {
+    #[schema(example = "testuser@gmail.com")]
     pub email: String,
+    #[schema(example = "password123")]
     pub password: String,
 }
-#[get("/user")]
+
+#[utoipa::path(
+    path = "/auth/user",
+    request_body = GetUserBody,
+    responses(
+        (status = 200, description = "Retrive the user"),
+        (status = 500, description = "Invalid credentials"),
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
+#[post("/user")]
 pub async fn get_user(
     state: Data<AppState>,
     req: HttpRequest,
@@ -177,10 +191,22 @@ pub async fn get_user(
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct LogoutUserBody {
+    #[schema(example = "testuser@gmail.com", required = true)]
     pub email: String,
 }
+#[utoipa::path(
+    path = "/auth/logout",
+    request_body = LogoutUserBody,
+    responses(
+        (status = 200, description = "User logout"),
+        (status = 500, description = "Unable to logout user"),
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 #[post("/logout")]
 pub async fn logout_user(
     state: Data<AppState>,
@@ -215,11 +241,22 @@ pub async fn logout_user(
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct GenerateOTPBody {
+    #[schema(example = "testuser@gmail.com", required = true)]
     pub email: String,
 }
-
+#[utoipa::path(
+    path = "/auth/otp/generate",
+    request_body = GenerateOTPBody,
+    responses(
+        (status = 200, description = "User logout"),
+        (status = 500, description = "Unable to logout user"),
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 #[post("/otp/generate")]
 pub async fn generate_otp_handler(
     state: Data<AppState>,
@@ -284,8 +321,9 @@ pub async fn generate_otp_handler(
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct VerifyOTPBody {
+    #[schema(example = "123456", required = true)]
     pub otp_token: String,
 }
 
@@ -294,6 +332,17 @@ pub struct GenericResponse {
     pub status: String,
     pub message: String,
 }
+#[utoipa::path(
+    path = "/auth/otp/verify",
+    request_body = VerifyOTPBody,
+    responses(
+        (status = 200, description = "OTP verified"),
+        (status = 500, description = "failed to verify OTP"),
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 #[post("/otp/verify")]
 pub async fn verify_otp_handler(
     state: Data<AppState>,
@@ -376,11 +425,24 @@ pub async fn verify_otp_handler(
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct ValidateOTPBody {
+    #[schema(example = "testuser@gmail.com", required = true)]
     pub email: String,
+    #[schema(example = "123456", required = true)]
     pub otp_token: String,
 }
+#[utoipa::path(
+    path = "/auth/otp/validate",
+    request_body = ValidateOTPBody,
+    responses(
+        (status = 200, description = "OTP validated"),
+        (status = 500, description = "failed to validate OTP"),
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 #[post("/otp/validate")]
 pub async fn token_validate_handler(
     state: Data<AppState>,
@@ -456,11 +518,22 @@ pub async fn token_validate_handler(
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct DisableOTPBody {
+    #[schema(example = "testuser@gmail.com", required = true)]
     pub email: String,
 }
-
+#[utoipa::path(
+    path = "/auth/otp/disable",
+    request_body = DisableOTPBody,
+    responses(
+        (status = 200, description = "OTP disabled"),
+        (status = 500, description = "failed to disable OTP"),
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 #[post("/otp/disable")]
 pub async fn disable_otp_handler(
     state: Data<AppState>,
