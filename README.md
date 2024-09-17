@@ -20,13 +20,13 @@ A simple RESTful API for managing notes, secured with JWT authentication, built 
 
 - List all users
 
+- Two-factor authentication
+
 ## Requirements
 
 - Rust (latest stable version)
 
-- PostgreSQL
-
-- Cargo package manager
+- Diesel CLI
 
 ## Setup
 
@@ -40,60 +40,4 @@ cd  rust-note-api
 
 ```
 
-## POST Methods:
-
-### Endpoint: /user/register
-
-```json
-{
-  "username": "dipeshpaudel",
-  "email": "dipeshpaudel@gmail.com",
-  "password": "dipeshpaudel"
-}
-```
-
-### Endpoint: /user/login
-
-```json
-{
-  "email": "dipeshpaudel@gmail.com",
-  "password": "dipeshpaudel"
-}
-```
-
-### Endpoint: /secure/api/user/note
-
-```json
-{
-  "title": "Computer",
-  "content": "An electronic device."
-}
-```
-
-## GET Methods:
-
-### Endpoint: /
-
-### Endpoint: /test/hello-world
-
-### Endpoint: /test/Dipesh
-
-### Endpoint: /api/users
-
-### Endpoint: /api/notes
-
-### Endpoint: /secure/api/user/notes
-
-## PATCH Method:
-
-### Endpoint: /secure/api/user/note/update/{note_id}
-
-```json
-{
-  "title": "Mobile Phone"
-}
-```
-
-## DELETE Method:
-
-### Endpoint: /secure/api/user/note/delete/{note_id}
+- [API Documentation](http://127.0.0.1:8080/swagger-ui/)
