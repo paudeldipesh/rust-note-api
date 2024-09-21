@@ -7,6 +7,10 @@ use crate::utils::{
 };
 use actix::Addr;
 use actix_web::{
+    cookie::{
+        time::{Duration, OffsetDateTime},
+        Cookie,
+    },
     post,
     web::{Data, Json},
     HttpMessage, HttpRequest, HttpResponse, Responder,
@@ -104,13 +108,23 @@ pub async fn login_user(state: Data<AppState>, body: Json<LoginUserBody>) -> imp
             if is_valid.unwrap_or(false) {
                 let token_result = encode_jwt(user.email.clone(), user.id);
                 match token_result {
-                    Ok(token) => HttpResponse::Ok().json(serde_json::json!({
+                    Ok(token) => {
+                        let oneday: OffsetDateTime = OffsetDateTime::now_utc() + Duration::days(1);
+
+                        let cookie = Cookie::build("token", token.clone())
+                        .path("/")
+                        .http_only(true)
+                        .secure(false)
+                        .expires(oneday)
+                        .finish();
+
+                        HttpResponse::Ok().cookie(cookie).json(serde_json::json!({
                         "token": token,
                         "user": LoginUserResponse {
                             email: user.email,
                             username: user.username,
                         }
-                    })),
+                    }))},
                     Err(e) => HttpResponse::InternalServerError().json(
                         serde_json::json!({ "message": format!("Failed to generate token: {}", e) }),
                     ),
@@ -234,8 +248,20 @@ pub async fn logout_user(
         })
         .await
     {
-        Ok(Ok(_)) => HttpResponse::Ok()
-            .json(serde_json::json!({ "status": "success", "message": "Successfully logged out" })),
+        Ok(Ok(_)) => {
+            let now: OffsetDateTime = OffsetDateTime::now_utc();
+
+            let cookie = Cookie::build("token", "logout")
+                .path("/")
+                .http_only(true)
+                .secure(false)
+                .expires(now)
+                .finish();
+
+            HttpResponse::Ok().cookie(cookie).json(
+                serde_json::json!({ "status": "success", "message": "Successfully logged out" }),
+            )
+        }
         _ => HttpResponse::InternalServerError()
             .json(serde_json::json!({ "status": "fail", "message": "Unable to logout user" })),
     }
