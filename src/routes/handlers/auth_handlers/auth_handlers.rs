@@ -11,7 +11,7 @@ use actix_web::{
         time::{Duration, OffsetDateTime},
         Cookie,
     },
-    post,
+    get, post,
     web::{Data, Json},
     HttpMessage, HttpRequest, HttpResponse, Responder,
 };
@@ -205,14 +205,8 @@ pub async fn get_user(
     }
 }
 
-#[derive(Deserialize, ToSchema)]
-pub struct LogoutUserBody {
-    #[schema(example = "testuser@gmail.com", required = true)]
-    pub email: String,
-}
 #[utoipa::path(
     path = "/auth/logout",
-    request_body = LogoutUserBody,
     responses(
         (status = 200, description = "User logout"),
         (status = 500, description = "Unable to logout user"),
@@ -221,12 +215,8 @@ pub struct LogoutUserBody {
         ("bearer_auth" = [])
     )
 )]
-#[post("/logout")]
-pub async fn logout_user(
-    state: Data<AppState>,
-    req: HttpRequest,
-    body: Json<LogoutUserBody>,
-) -> impl Responder {
+#[get("/logout")]
+pub async fn logout_user(state: Data<AppState>, req: HttpRequest) -> impl Responder {
     let claims: Claims = match req.extensions().get::<Claims>() {
         Some(claims) => claims.clone(),
         None => {
@@ -234,11 +224,6 @@ pub async fn logout_user(
                 .json(serde_json::json!({"message": "Unauthorized access"}));
         }
     };
-
-    if body.email != claims.email {
-        return HttpResponse::Forbidden()
-            .json(serde_json::json!({"message": "Email does not match"}));
-    }
 
     let db: Addr<DbActor> = state.as_ref().db.clone();
 
@@ -508,7 +493,7 @@ pub async fn token_validate_handler(
             if !user.opt_verified.unwrap_or(false) {
                 return HttpResponse::Forbidden().json(GenericResponse {
                     status: String::from("fail"),
-                    message: String::from("OTP not verified"),
+                    message: String::from("OTP not validated"),
                 });
             }
 

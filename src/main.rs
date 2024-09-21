@@ -68,7 +68,6 @@ async fn main() -> std::io::Result<()> {
             UpdateNoteBody,
             CreateUser,
             LoginAndGetUser,
-            LogoutUserBody,
             CreateNote,
             GetUserBody,
             GenerateOTPBody,

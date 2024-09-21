@@ -13,6 +13,12 @@ pub async fn check_auth_middleware(
     req: ServiceRequest,
     next: Next<impl MessageBody>,
 ) -> Result<ServiceResponse<impl MessageBody>, Error> {
+    if !req.cookie("token").is_some() {
+        return Err(ErrorUnauthorized(
+            serde_json::json!({ "message": "Token is not available in the cookie" }),
+        ));
+    }
+
     let auth: Option<&HeaderValue> = req.headers().get(AUTHORIZATION);
 
     if auth.is_none() {
