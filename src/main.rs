@@ -11,7 +11,7 @@ use utils::{
 mod models;
 mod routes;
 use routes::handlers::{
-    auth_handlers::{auth_handlers::*, messages::*},
+    auth_handlers::{auth_handlers::*, messages::*, two_fa_handlers::*, user_handlers::*},
     note_handlers::{messages::*, note_handlers::*},
     test_handlers::test_handlers::*,
 };
