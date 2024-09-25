@@ -35,6 +35,7 @@ pub async fn check_auth_middleware(
         .to_owned();
 
     let claim: TokenData<Claims> = decode_jwt(token).unwrap();
+
     req.extensions_mut().insert(claim.claims);
 
     next.call(req).await.map_err(|err| {

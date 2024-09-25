@@ -15,11 +15,12 @@ pub struct CreateUser {
     pub password: String,
 }
 
+#[allow(dead_code)]
 #[derive(Message, ToSchema)]
 #[rtype(result = "QueryResult<User>")]
 pub struct LoginAndGetUser {
     pub email: String,
-    pub _password: String,
+    pub password: String,
 }
 
 #[derive(Message)]

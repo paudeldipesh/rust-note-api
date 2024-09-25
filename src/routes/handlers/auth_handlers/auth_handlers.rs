@@ -1,5 +1,4 @@
 use super::messages::*;
-#[allow(dead_code)]
 use crate::utils::{
     db::{AppState, DbActor},
     jwt::encode_jwt,
@@ -96,7 +95,7 @@ pub async fn login_user(state: Data<AppState>, body: Json<LoginUserBody>) -> imp
     match db
         .send(LoginAndGetUser {
             email: body.email.clone(),
-            _password: body.password.clone(),
+            password: body.password.clone(),
         })
         .await
     {

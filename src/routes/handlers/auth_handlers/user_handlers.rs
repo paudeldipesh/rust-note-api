@@ -58,7 +58,7 @@ pub async fn get_user(state: Data<AppState>, req: HttpRequest) -> impl Responder
     match db
         .send(LoginAndGetUser {
             email: claims.email.clone(),
-            _password: String::new(),
+            password: String::new(),
         })
         .await
     {

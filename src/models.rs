@@ -19,7 +19,6 @@ pub struct Note {
 
 #[derive(Queryable, Debug, Serialize)]
 pub struct User {
-    #[serde(skip_serializing)]
     pub id: i32,
     pub username: String,
     pub email: String,

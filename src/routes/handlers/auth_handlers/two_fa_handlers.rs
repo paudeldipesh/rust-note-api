@@ -126,7 +126,7 @@ pub async fn verify_otp_handler(
     match db
         .send(LoginAndGetUser {
             email: user_email.clone(),
-            _password: String::new(),
+            password: String::new(),
         })
         .await
     {
@@ -226,7 +226,7 @@ pub async fn token_validate_handler(
     match db
         .send(LoginAndGetUser {
             email: user_email.clone(),
-            _password: String::new(),
+            password: String::new(),
         })
         .await
     {
