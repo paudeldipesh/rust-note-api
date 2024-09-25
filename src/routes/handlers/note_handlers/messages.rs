@@ -1,13 +1,9 @@
-use crate::models::{Note, User};
+use crate::models::Note;
 use actix::Message;
 use chrono::offset::Utc;
 use chrono::DateTime;
 use diesel::QueryResult;
 use utoipa::ToSchema;
-
-#[derive(Message)]
-#[rtype(result = "QueryResult<Vec<User>>")]
-pub struct FetchUser;
 
 #[derive(Message)]
 #[rtype(result = "QueryResult<Vec<Note>>")]

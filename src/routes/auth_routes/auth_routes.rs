@@ -12,7 +12,8 @@ pub fn configuration(configure: &mut web::ServiceConfig) {
             web::scope("/user")
                 .service(register_user)
                 .service(login_user)
-                .service(logout_user),
+                .service(logout_user)
+                .service(fetch_users),
         )
         .service(
             web::scope("/auth")

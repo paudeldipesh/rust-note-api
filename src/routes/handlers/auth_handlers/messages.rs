@@ -3,6 +3,10 @@ use actix::Message;
 use diesel::QueryResult;
 use utoipa::ToSchema;
 
+#[derive(Message)]
+#[rtype(result = "QueryResult<Vec<User>>")]
+pub struct FetchUser;
+
 #[derive(Message, ToSchema)]
 #[rtype(result = "QueryResult<User>")]
 pub struct CreateUser {

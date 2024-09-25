@@ -1,24 +1,10 @@
 use super::insertables::NewNote;
 use super::messages::*;
-use crate::models::{Note, User};
+use crate::models::Note;
 use crate::schema::notes::{dsl::*, id as note_id};
-use crate::schema::users::dsl::*;
 use crate::utils::db::DbActor;
 use actix::Handler;
 use diesel::prelude::*;
-
-impl Handler<FetchUser> for DbActor {
-    type Result = QueryResult<Vec<User>>;
-
-    fn handle(&mut self, _msg: FetchUser, _ctx: &mut Self::Context) -> Self::Result {
-        let mut connection = self
-            .0
-            .get()
-            .expect("Fetch User: Unable to establish connection");
-
-        users.get_results::<User>(&mut connection)
-    }
-}
 
 impl Handler<FetchAllNotes> for DbActor {
     type Result = QueryResult<Vec<Note>>;

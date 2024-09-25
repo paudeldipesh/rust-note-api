@@ -3,10 +3,34 @@ use crate::{
         db::{AppState, DbActor},
         jwt::Claims,
     },
-    LoginAndGetUser,
+    FetchUser, LoginAndGetUser,
 };
 use actix::Addr;
 use actix_web::{get, web::Data, HttpMessage, HttpRequest, HttpResponse, Responder};
+
+#[utoipa::path(
+    path = "/user/users",
+    responses(
+        (status = 200, description = "Get all users"),
+        (status = 404, description = "No users found"),
+        (status = 500, description = "Unable to retrieve users"),
+    ),
+)]
+#[get("/users")]
+pub async fn fetch_users(state: Data<AppState>) -> impl Responder {
+    let db: Addr<DbActor> = state.as_ref().db.clone();
+
+    match db.send(FetchUser).await {
+        Ok(Ok(users)) => HttpResponse::Ok().json(users),
+
+        Ok(Err(_)) => {
+            HttpResponse::NotFound().json(serde_json::json!({ "message": "No users found" }))
+        }
+
+        _ => HttpResponse::InternalServerError()
+            .json(serde_json::json!({ "message": "Unable to retrieve users" })),
+    }
+}
 
 #[utoipa::path(
     path = "/auth/user",
