@@ -69,10 +69,8 @@ async fn main() -> std::io::Result<()> {
             CreateUser,
             LoginAndGetUser,
             CreateNote,
-            GenerateOTPBody,
             VerifyOTPBody,
             ValidateOTPBody,
-            DisableOTPBody,
         )
     ),
     modifiers(&SecurityAddon)

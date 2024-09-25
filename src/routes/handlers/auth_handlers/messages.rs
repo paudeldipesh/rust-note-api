@@ -20,17 +20,7 @@ pub struct LoginAndGetUser {
 
 #[derive(Message)]
 #[rtype(result = "QueryResult<User>")]
-pub struct GenerateAndDisableOTPMessage {
-    pub email: String,
-    pub opt_verified: bool,
-    pub opt_enabled: bool,
-    pub opt_base32: String,
-    pub opt_auth_url: String,
-}
-
-#[derive(Message)]
-#[rtype(result = "QueryResult<User>")]
-pub struct VerifyOTPMessage {
+pub struct OTPMessage {
     pub email: String,
     pub opt_verified: bool,
     pub opt_enabled: bool,

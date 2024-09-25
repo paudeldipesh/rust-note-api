@@ -1,6 +1,6 @@
 use actix::Addr;
 use actix_web::{
-    post,
+    get, post,
     web::{Data, Json},
     HttpMessage, HttpRequest, HttpResponse, Responder,
 };
@@ -14,31 +14,21 @@ use crate::{
         db::{AppState, DbActor},
         jwt::Claims,
     },
-    GenerateAndDisableOTPMessage, LoginAndGetUser,
+    LoginAndGetUser, OTPMessage,
 };
 
-#[derive(Deserialize, ToSchema)]
-pub struct GenerateOTPBody {
-    #[schema(example = "testuser@gmail.com", required = true)]
-    pub email: String,
-}
 #[utoipa::path(
     path = "/auth/otp/generate",
-    request_body = GenerateOTPBody,
     responses(
-        (status = 200, description = "User logout"),
-        (status = 500, description = "Unable to logout user"),
+        (status = 200, description = "OTP generated"),
+        (status = 500, description = "failed to generate OTP"),
     ),
     security(
         ("bearer_auth" = [])
     )
 )]
-#[post("/otp/generate")]
-pub async fn generate_otp_handler(
-    state: Data<AppState>,
-    req: HttpRequest,
-    body: Json<GenerateOTPBody>,
-) -> impl Responder {
+#[get("/otp/generate")]
+pub async fn generate_otp_handler(state: Data<AppState>, req: HttpRequest) -> impl Responder {
     let claims: Claims = match req.extensions().get::<Claims>() {
         Some(claims) => claims.clone(),
         None => {
@@ -46,11 +36,6 @@ pub async fn generate_otp_handler(
                 .json(serde_json::json!({"message": "Unauthorized access"}));
         }
     };
-
-    if body.email != claims.email {
-        return HttpResponse::Forbidden()
-            .json(serde_json::json!({"message": "Email does not match."}));
-    }
 
     let db: Addr<DbActor> = state.as_ref().db.clone();
 
@@ -78,7 +63,7 @@ pub async fn generate_otp_handler(
     let opt_enabled: bool = true;
 
     match db
-        .send(GenerateAndDisableOTPMessage {
+        .send(OTPMessage {
             email,
             opt_verified,
             opt_enabled,
@@ -171,7 +156,7 @@ pub async fn verify_otp_handler(
             let opt_enabled: bool = true;
 
             match db
-                .send(GenerateAndDisableOTPMessage {
+                .send(OTPMessage {
                     email: user_email,
                     opt_verified,
                     opt_enabled,
@@ -203,8 +188,6 @@ pub async fn verify_otp_handler(
 
 #[derive(Deserialize, ToSchema)]
 pub struct ValidateOTPBody {
-    #[schema(example = "testuser@gmail.com", required = true)]
-    pub email: String,
     #[schema(example = "123456", required = true)]
     pub otp_token: String,
 }
@@ -235,15 +218,8 @@ pub async fn token_validate_handler(
         }
     };
 
-    let user_email: String = body.email.clone();
+    let user_email: String = claims.email.clone();
     let otp_token: String = body.otp_token.clone();
-
-    if user_email != claims.email {
-        return HttpResponse::Forbidden().json(GenericResponse {
-            status: String::from("fail"),
-            message: String::from("email mismatch"),
-        });
-    }
 
     let db: Addr<DbActor> = state.as_ref().db.clone();
 
@@ -294,14 +270,8 @@ pub async fn token_validate_handler(
     }
 }
 
-#[derive(Deserialize, ToSchema)]
-pub struct DisableOTPBody {
-    #[schema(example = "testuser@gmail.com", required = true)]
-    pub email: String,
-}
 #[utoipa::path(
     path = "/auth/otp/disable",
-    request_body = DisableOTPBody,
     responses(
         (status = 200, description = "OTP disabled"),
         (status = 500, description = "failed to disable OTP"),
@@ -310,12 +280,8 @@ pub struct DisableOTPBody {
         ("bearer_auth" = [])
     )
 )]
-#[post("/otp/disable")]
-pub async fn disable_otp_handler(
-    state: Data<AppState>,
-    req: HttpRequest,
-    body: Json<DisableOTPBody>,
-) -> impl Responder {
+#[get("/otp/disable")]
+pub async fn disable_otp_handler(state: Data<AppState>, req: HttpRequest) -> impl Responder {
     let claims: Claims = match req.extensions().get::<Claims>() {
         Some(claims) => claims.clone(),
         None => {
@@ -324,15 +290,10 @@ pub async fn disable_otp_handler(
         }
     };
 
-    if body.email != claims.email {
-        return HttpResponse::Forbidden()
-            .json(serde_json::json!({"message": "Email does not match."}));
-    }
-
     let db: Addr<DbActor> = state.as_ref().db.clone();
 
     match db
-        .send(GenerateAndDisableOTPMessage {
+        .send(OTPMessage {
             email: claims.email,
             opt_verified: false,
             opt_enabled: false,
