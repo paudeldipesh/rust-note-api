@@ -139,7 +139,7 @@ pub async fn login_user(state: Data<AppState>, body: Json<LoginUserBody>) -> imp
 }
 
 #[utoipa::path(
-    path = "/auth/logout",
+    path = "/user/logout",
     responses(
         (status = 200, description = "User logout"),
         (status = 500, description = "Unable to logout user"),
