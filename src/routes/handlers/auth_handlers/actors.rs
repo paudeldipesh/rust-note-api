@@ -42,21 +42,6 @@ impl Handler<LoginAndGetUser> for DbActor {
     }
 }
 
-impl Handler<LogoutUser> for DbActor {
-    type Result = QueryResult<User>;
-
-    fn handle(&mut self, msg: LogoutUser, _ctx: &mut Self::Context) -> Self::Result {
-        let mut connection = self
-            .0
-            .get()
-            .expect("Logout User: Unable to establish connection");
-
-        Ok(users
-            .filter(email.eq(&msg.email))
-            .first::<User>(&mut connection)?)
-    }
-}
-
 impl Handler<GenerateAndDisableOTPMessage> for DbActor {
     type Result = QueryResult<User>;
 

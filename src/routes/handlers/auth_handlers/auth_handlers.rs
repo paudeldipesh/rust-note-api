@@ -1,5 +1,4 @@
 use super::messages::*;
-use crate::utils::jwt::Claims;
 #[allow(dead_code)]
 use crate::utils::{
     db::{AppState, DbActor},
@@ -13,7 +12,7 @@ use actix_web::{
     },
     get, post,
     web::{Data, Json},
-    HttpMessage, HttpRequest, HttpResponse, Responder,
+    HttpResponse, Responder,
 };
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
@@ -150,38 +149,17 @@ pub async fn login_user(state: Data<AppState>, body: Json<LoginUserBody>) -> imp
     )
 )]
 #[get("/logout")]
-pub async fn logout_user(state: Data<AppState>, req: HttpRequest) -> impl Responder {
-    let claims: Claims = match req.extensions().get::<Claims>() {
-        Some(claims) => claims.clone(),
-        None => {
-            return HttpResponse::Unauthorized()
-                .json(serde_json::json!({"message": "Unauthorized access"}));
-        }
-    };
+pub async fn logout_user() -> impl Responder {
+    let now: OffsetDateTime = OffsetDateTime::now_utc();
 
-    let db: Addr<DbActor> = state.as_ref().db.clone();
+    let cookie = Cookie::build("token", "logout")
+        .path("/")
+        .http_only(true)
+        .secure(false)
+        .expires(now)
+        .finish();
 
-    match db
-        .send(LogoutUser {
-            email: claims.email,
-        })
-        .await
-    {
-        Ok(Ok(_)) => {
-            let now: OffsetDateTime = OffsetDateTime::now_utc();
-
-            let cookie = Cookie::build("token", "logout")
-                .path("/")
-                .http_only(true)
-                .secure(false)
-                .expires(now)
-                .finish();
-
-            HttpResponse::Ok().cookie(cookie).json(
-                serde_json::json!({ "status": "success", "message": "Successfully logged out" }),
-            )
-        }
-        _ => HttpResponse::InternalServerError()
-            .json(serde_json::json!({ "status": "fail", "message": "Unable to logout user" })),
-    }
+    HttpResponse::Ok()
+        .cookie(cookie)
+        .json(serde_json::json!({ "status": "success", "message": "Successfully logged out" }))
 }
