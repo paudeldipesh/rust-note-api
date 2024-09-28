@@ -4,6 +4,7 @@ use std::env;
 
 lazy_static! {
     pub static ref ADDRESS: String = set_address();
+    pub static ref MOONPAY_API_KEY: String = set_moonpay_api_key();
     pub static ref DATABASE_URL: String = set_database_url();
     pub static ref PORT: u16 = set_port();
     pub static ref SECRET: String = set_secret();
@@ -30,4 +31,9 @@ fn set_port() -> u16 {
         .expect("PORT must be set")
         .parse::<u16>()
         .expect("PORT must be a valid u16 number")
+}
+
+fn set_moonpay_api_key() -> String {
+    dotenv().ok();
+    env::var("MOONPAY_API_KEY").expect("MOONPAY_API_KEY must be set")
 }
