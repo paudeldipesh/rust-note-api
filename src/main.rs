@@ -14,8 +14,12 @@ use routes::handlers::{
     auth_handlers::{auth_handlers::*, messages::*, two_fa_handlers::*, user_handlers::*},
     note_handlers::{messages::*, note_handlers::*},
     test_handlers::test_handlers::*,
+    transaction_handlers::transaction_handlers::*,
 };
-use routes::{auth_routes::auth_routes, note_routes::note_routes, test_routes::test_routes};
+use routes::{
+    auth_routes::auth_routes, note_routes::note_routes, test_routes::test_routes,
+    transaction_routes::transaction_routes,
+};
 mod schema;
 mod utils;
 use utoipa::{
@@ -57,7 +61,8 @@ async fn main() -> std::io::Result<()> {
         logout_user,
         token_validate_handler,
         disable_otp_handler,
-        get_user
+        get_user,
+        buy_information,
     ),
     components(
         schemas(
@@ -113,6 +118,7 @@ async fn main() -> std::io::Result<()> {
             .configure(test_routes::configuration)
             .configure(note_routes::configuration)
             .configure(auth_routes::configuration)
+            .configure(transaction_routes::configuration)
     })
     .bind((address, port))?
     .run()
