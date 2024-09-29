@@ -62,7 +62,8 @@ async fn main() -> std::io::Result<()> {
         token_validate_handler,
         disable_otp_handler,
         get_user,
-        buy_information,
+        get_buy_lists,
+        get_buy_quote,
     ),
     components(
         schemas(

@@ -4,25 +4,25 @@ use reqwest::Client;
 use serde::Deserialize;
 
 #[derive(Deserialize)]
-struct UserInfo {
+struct BuyListsQuery {
     moonpay_token: String,
 }
 
 #[utoipa::path(
-    path = "/transaction/buy/info",
+    path = "/secure/transaction/buy/lists",
     params(
         ("moonpay_token" = String, Query, description = "Moonpay token of the user"),
     ),
     responses(
-        (status = 200, description = "Handles buy info queries"),
+        (status = 200, description = "Handles buy lists queries"),
     ),
     security(
         ("bearer_auth" = [])
     )
 )]
-#[get("/buy/info")]
-pub async fn buy_information(req: HttpRequest, query: web::Query<UserInfo>) -> impl Responder {
-    let UserInfo { moonpay_token } = query.into_inner();
+#[get("/buy/lists")]
+pub async fn get_buy_lists(req: HttpRequest, query: web::Query<BuyListsQuery>) -> impl Responder {
+    let BuyListsQuery { moonpay_token } = query.into_inner();
 
     let claims: Claims = match req.extensions().get::<Claims>() {
         Some(claims) => claims.clone(),

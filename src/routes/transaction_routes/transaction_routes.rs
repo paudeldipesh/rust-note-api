@@ -9,8 +9,8 @@ pub fn configuration(configure: &mut web::ServiceConfig) {
     configure
         .service(web::scope("/transaction").service(get_buy_quote))
         .service(
-            web::scope("/transaction")
+            web::scope("/secure/transaction")
                 .wrap(from_fn(check_auth_middleware))
-                .service(buy_information),
+                .service(get_buy_lists),
         );
 }
