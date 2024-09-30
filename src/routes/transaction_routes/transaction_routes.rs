@@ -10,7 +10,8 @@ pub fn configuration(configure: &mut web::ServiceConfig) {
         .service(
             web::scope("/transaction")
                 .service(get_buy_quote)
-                .service(get_buy_information),
+                .service(get_buy_information)
+                .service(get_swap_transaction),
         )
         .service(
             web::scope("/secure/transaction")

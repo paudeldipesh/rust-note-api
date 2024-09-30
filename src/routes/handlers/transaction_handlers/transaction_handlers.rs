@@ -177,3 +177,64 @@ pub async fn get_buy_information(query: web::Query<BuyInfoQuery>) -> impl Respon
         })),
     }
 }
+
+#[derive(Deserialize)]
+struct SwapInfo {
+    moonpay_token: String,
+    transaction_id: String,
+}
+
+#[utoipa::path(
+    path = "/transaction/swap/info",
+    params(
+        ("moonpay_token" = String, Query, description = "Auth token - moonpay"),
+        ("transaction_id" = String, Query, description = "Transaction id of swap"),
+    ),
+    responses(
+        (status = 200, description = "Handles buy quote queries"),
+    )
+)]
+#[get("/swap/info")]
+pub async fn get_swap_transaction(query: web::Query<SwapInfo>) -> impl Responder {
+    let SwapInfo {
+        moonpay_token,
+        transaction_id,
+    } = query.into_inner();
+
+    let api_key: String = (*utils::constants::MOONPAY_API_KEY).clone();
+
+    let url: String = format!(
+        "https://api.moonpay.com/v4/swap/transaction/{}?apiKey={}",
+        transaction_id, api_key
+    );
+
+    let client: Client = Client::new();
+
+    match client.get(url).bearer_auth(moonpay_token).send().await {
+        Ok(response) => {
+            if response.status().is_success() {
+                match response.json::<serde_json::Value>().await {
+                    Ok(json) => HttpResponse::Ok().json(json),
+                    Err(_) => HttpResponse::InternalServerError()
+                        .json(serde_json::json!({ "error": "Failed to parse response" })),
+                }
+            } else {
+                let status_code: reqwest::StatusCode = response.status();
+                let error_body = match response.text().await {
+                    Ok(body) => body,
+                    Err(_) => "Failed to read error response body".to_string(),
+                };
+
+                HttpResponse::BadRequest().json(serde_json::json!({
+                    "error": "Failed to fetch buy quote info",
+                    "status": status_code.as_u16(),
+                    "details": error_body,
+                }))
+            }
+        }
+        Err(error) => HttpResponse::InternalServerError().json(serde_json::json!({
+            "error": "Request error",
+            "details": error.to_string(),
+        })),
+    }
+}
