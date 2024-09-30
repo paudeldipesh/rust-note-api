@@ -1,4 +1,4 @@
-use crate::routes::{
+use crate::{
     handlers::note_handlers::note_handlers::*, middlewares::auth_middlewares::check_auth_middleware,
 };
 use actix_web::web;

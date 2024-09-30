@@ -8,9 +8,11 @@ use utils::{
     db::{get_pool, AppState, DbActor},
     jwt::Claims,
 };
+mod handlers;
+mod middlewares;
 mod models;
 mod routes;
-use routes::handlers::{
+use handlers::{
     auth_handlers::{auth_handlers::*, messages::*, two_fa_handlers::*, user_handlers::*},
     note_handlers::{messages::*, note_handlers::*},
     test_handlers::test_handlers::*,
@@ -64,6 +66,8 @@ async fn main() -> std::io::Result<()> {
         get_user,
         get_buy_lists,
         get_buy_quote,
+        get_buy_information,
+        get_swap_transaction,
     ),
     components(
         schemas(

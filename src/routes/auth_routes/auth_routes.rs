@@ -1,7 +1,5 @@
-use crate::routes::handlers::auth_handlers::{two_fa_handlers::*, user_handlers::*};
-use crate::routes::{
-    handlers::auth_handlers::*, middlewares::auth_middlewares::check_auth_middleware,
-};
+use crate::handlers::auth_handlers::{two_fa_handlers::*, user_handlers::*};
+use crate::{handlers::auth_handlers::*, middlewares::auth_middlewares::check_auth_middleware};
 use actix_web::web;
 use actix_web_lab::middleware::from_fn;
 use auth_handlers::*;
