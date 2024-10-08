@@ -7,7 +7,7 @@ use actix_web::{
     Error, HttpMessage,
 };
 use actix_web_lab::middleware::Next;
-use jsonwebtoken::TokenData;
+use jsonwebtoken::{errors::ErrorKind, TokenData};
 
 pub async fn check_auth_middleware(
     req: ServiceRequest,
@@ -34,7 +34,26 @@ pub async fn check_auth_middleware(
         .replace("Bearer ", "")
         .to_owned();
 
-    let claim: TokenData<Claims> = decode_jwt(token).unwrap();
+    let claim: TokenData<Claims> = match decode_jwt(token) {
+        Ok(claim_data) => claim_data,
+        Err(e) => match e.kind() {
+            ErrorKind::ExpiredSignature => {
+                return Err(ErrorUnauthorized(
+                    serde_json::json!({ "message": "Token has expired" }),
+                ));
+            }
+            ErrorKind::InvalidSignature => {
+                return Err(ErrorUnauthorized(
+                    serde_json::json!({ "message": "Invalid token signature" }),
+                ));
+            }
+            _ => {
+                return Err(ErrorUnauthorized(
+                    serde_json::json!({ "message": "Invalid token", "details": e.to_string() }),
+                ));
+            }
+        },
+    };
 
     req.extensions_mut().insert(claim.claims);
 
