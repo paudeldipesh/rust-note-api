@@ -8,6 +8,7 @@ pub struct NewUser {
     pub username: String,
     pub email: String,
     pub password: String,
+    pub role: String,
 }
 
 #[derive(Insertable, Serialize, Clone, AsChangeset)]

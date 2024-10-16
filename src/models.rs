@@ -28,4 +28,5 @@ pub struct User {
     pub opt_enabled: Option<bool>,
     pub opt_base32: Option<String>,
     pub opt_auth_url: Option<String>,
+    pub role: String,
 }

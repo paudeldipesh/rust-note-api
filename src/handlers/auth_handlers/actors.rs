@@ -28,10 +28,22 @@ impl Handler<CreateUser> for DbActor {
             .get()
             .expect("Create User: Unable to establish connection");
 
+        let user_count: i64 = users
+            .count()
+            .get_result::<i64>(&mut connection)
+            .expect("Unable to get user count");
+
+        let user_role: String = if user_count == 0 {
+            String::from("admin")
+        } else {
+            String::from("user")
+        };
+
         let new_user: NewUser = NewUser {
             username: msg.username,
             email: msg.email,
             password: msg.password,
+            role: user_role,
         };
 
         diesel::insert_into(users)

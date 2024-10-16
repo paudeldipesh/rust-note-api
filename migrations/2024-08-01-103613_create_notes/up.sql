@@ -8,7 +8,8 @@ CREATE TABLE
     opt_verified BOOLEAN DEFAULT FALSE,
     opt_enabled BOOLEAN DEFAULT FALSE,
     opt_base32 VARCHAR(100) DEFAULT NULL,
-    opt_auth_url VARCHAR(255) DEFAULT NULL
+    opt_auth_url VARCHAR(255) DEFAULT NULL,
+    role VARCHAR(10) DEFAULT 'user' NOT NULL
   );
 
 CREATE TABLE

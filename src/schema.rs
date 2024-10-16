@@ -27,6 +27,8 @@ diesel::table! {
         opt_base32 -> Nullable<Varchar>,
         #[max_length = 255]
         opt_auth_url -> Nullable<Varchar>,
+        #[max_length = 10]
+        role -> Varchar,
     }
 }
 
