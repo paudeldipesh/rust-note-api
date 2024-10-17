@@ -20,7 +20,7 @@ pub fn configuration(configure: &mut web::ServiceConfig) {
                 .service(token_validate_handler)
                 .service(disable_otp_handler)
                 .service(get_user)
-                .wrap(from_fn(auth_admin_middleware))
+                .wrap(from_fn(auth_stats_middleware))
                 .service(fetch_users),
         );
 }

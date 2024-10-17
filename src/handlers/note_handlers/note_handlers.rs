@@ -14,7 +14,7 @@ use serde::Deserialize;
 use utoipa::ToSchema;
 
 #[utoipa::path(
-    path = "/api/notes",
+    path = "/secure/api/notes",
     responses(
         (status = 200, description = "Get all notes"),
         (status = 404, description = "No notes found"),

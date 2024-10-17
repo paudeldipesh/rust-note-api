@@ -128,7 +128,7 @@ async fn check_auth_permissions(
     })
 }
 
-pub async fn auth_admin_middleware(
+pub async fn auth_stats_middleware(
     req: ServiceRequest,
     next: Next<impl MessageBody>,
 ) -> Result<ServiceResponse<impl MessageBody>, actix_web::Error> {
