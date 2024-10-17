@@ -1,5 +1,5 @@
 use crate::handlers::auth_handlers::{two_fa_handlers::*, user_handlers::*};
-use crate::{handlers::auth_handlers::*, middlewares::auth_middlewares::check_auth_middleware};
+use crate::{handlers::auth_handlers::*, middlewares::auth_middlewares::*};
 use actix_web::web;
 use actix_web_lab::middleware::from_fn;
 use auth_handlers::*;
@@ -10,8 +10,7 @@ pub fn configuration(configure: &mut web::ServiceConfig) {
             web::scope("/user")
                 .service(register_user)
                 .service(login_user)
-                .service(logout_user)
-                .service(fetch_users),
+                .service(logout_user),
         )
         .service(
             web::scope("/auth")
@@ -20,6 +19,8 @@ pub fn configuration(configure: &mut web::ServiceConfig) {
                 .service(verify_otp_handler)
                 .service(token_validate_handler)
                 .service(disable_otp_handler)
-                .service(get_user),
+                .service(get_user)
+                .wrap(from_fn(auth_admin_middleware))
+                .service(fetch_users),
         );
 }

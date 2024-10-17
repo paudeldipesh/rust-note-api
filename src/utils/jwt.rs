@@ -13,6 +13,7 @@ pub struct Claims {
     pub iat: usize,
     pub email: String,
     pub id: i32,
+    pub role: String,
 }
 
 impl FromRequest for Claims {
@@ -30,7 +31,7 @@ impl FromRequest for Claims {
     }
 }
 
-pub fn encode_jwt(email: String, id: i32) -> Result<String, Error> {
+pub fn encode_jwt(email: String, id: i32, role: String) -> Result<String, Error> {
     let now: DateTime<Utc> = Utc::now();
     let expire: TimeDelta = Duration::hours(24);
 
@@ -39,6 +40,7 @@ pub fn encode_jwt(email: String, id: i32) -> Result<String, Error> {
         iat: now.timestamp() as usize,
         email,
         id,
+        role,
     };
 
     let secret: String = (*constants::SECRET).clone();

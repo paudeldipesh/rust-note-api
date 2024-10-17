@@ -102,7 +102,7 @@ pub async fn login_user(state: Data<AppState>, body: Json<LoginUserBody>) -> imp
         Ok(Ok(user)) => {
             let is_valid = bcrypt::verify(&body.password, &user.password);
             if is_valid.unwrap_or(false) {
-                let token_result = encode_jwt(user.email.clone(), user.id);
+                let token_result = encode_jwt(user.email.clone(), user.id, user.role);
                 match token_result {
                     Ok(token) => {
                         let oneday: OffsetDateTime = OffsetDateTime::now_utc() + Duration::days(1);
