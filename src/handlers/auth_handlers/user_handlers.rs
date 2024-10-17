@@ -15,6 +15,9 @@ use actix_web::{get, web::Data, HttpMessage, HttpRequest, HttpResponse, Responde
         (status = 404, description = "No users found"),
         (status = 500, description = "Unable to retrieve users"),
     ),
+    security(
+        ("bearer_auth" = [])
+    )
 )]
 #[get("/users")]
 pub async fn fetch_users(state: Data<AppState>) -> impl Responder {

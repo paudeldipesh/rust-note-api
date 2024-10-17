@@ -20,6 +20,9 @@ use utoipa::ToSchema;
         (status = 404, description = "No notes found"),
         (status = 500, description = "Unable to retrieve notes"),
     ),
+    security(
+        ("bearer_auth" = [])
+    )
 )]
 #[get("/notes")]
 pub async fn fetch_all_notes(state: Data<AppState>) -> impl Responder {
