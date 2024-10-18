@@ -19,7 +19,10 @@ pub fn configuration(configure: &mut web::ServiceConfig) {
                 .service(verify_otp_handler)
                 .service(token_validate_handler)
                 .service(disable_otp_handler)
-                .service(get_user)
+                .service(get_user),
+        )
+        .service(
+            web::scope("/admin/api")
                 .wrap(from_fn(auth_stats_middleware))
                 .service(fetch_users),
         );

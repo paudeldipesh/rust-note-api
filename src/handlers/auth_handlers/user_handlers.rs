@@ -9,7 +9,7 @@ use actix::Addr;
 use actix_web::{get, web::Data, HttpMessage, HttpRequest, HttpResponse, Responder};
 
 #[utoipa::path(
-    path = "/auth/users",
+    path = "/admin/api/users",
     responses(
         (status = 200, description = "Get all users"),
         (status = 404, description = "No users found"),

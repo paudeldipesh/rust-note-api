@@ -16,11 +16,15 @@ use utoipa::ToSchema;
 #[derive(Deserialize)]
 pub struct NoteQuery {
     search: Option<String>,
+    sort_field: Option<String>,
+    sort_order: Option<String>,
 }
 #[utoipa::path(
-    path = "/secure/api/notes",
+    path = "/admin/api/notes",
     params(
-        ("search" = String, Query, description = "Search terms to seach notes")
+        ("search" = String, Query, description = "Search terms to seach notes"),
+        ("sort_field" = String, Query, description = "Provide title or content"),
+        ("sort_order" = String, Query, description = "Provide asc or desc"),
     ),
     responses(
         (status = 200, description = "Get all notes"),
@@ -38,6 +42,8 @@ pub async fn fetch_notes(state: Data<AppState>, query: Query<NoteQuery>) -> impl
     match db
         .send(FetchNotes {
             search: query.search.clone(),
+            sort_field: query.sort_field.clone(),
+            sort_order: query.sort_order.clone(),
         })
         .await
     {

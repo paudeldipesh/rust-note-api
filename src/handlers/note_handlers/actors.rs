@@ -28,6 +28,30 @@ impl Handler<FetchNotes> for DbActor {
             );
         }
 
+        if let Some(sort_field) = msg.sort_field {
+            match sort_field.as_str() {
+                "title" => {
+                    if let Some(sort_order) = msg.sort_order {
+                        match sort_order.as_str() {
+                            "asc" => query = query.order(title.asc()),
+                            "desc" => query = query.order(title.desc()),
+                            _ => {}
+                        }
+                    }
+                }
+                "content" => {
+                    if let Some(sort_order) = msg.sort_order {
+                        match sort_order.as_str() {
+                            "asc" => query = query.order(content.asc()),
+                            "desc" => query = query.order(content.desc()),
+                            _ => {}
+                        }
+                    }
+                }
+                _ => {}
+            }
+        }
+
         query.get_results::<Note>(&mut connection)
     }
 }
