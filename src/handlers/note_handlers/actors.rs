@@ -4,18 +4,31 @@ use crate::models::Note;
 use crate::schema::notes::{dsl::*, id as note_id};
 use crate::utils::db::DbActor;
 use actix::Handler;
+use diesel::associations::HasTable;
 use diesel::prelude::*;
 
-impl Handler<FetchAllNotes> for DbActor {
+impl Handler<FetchNotes> for DbActor {
     type Result = QueryResult<Vec<Note>>;
 
-    fn handle(&mut self, _msg: FetchAllNotes, _ctx: &mut Self::Context) -> Self::Result {
+    fn handle(&mut self, msg: FetchNotes, _ctx: &mut Self::Context) -> Self::Result {
         let mut connection = self
             .0
             .get()
-            .expect("Fetch All Notes: Unable to establish connection");
+            .expect("Fetch Notes: Unable to establish connection");
 
-        notes.get_results::<Note>(&mut connection)
+        let mut query = notes::table().into_boxed();
+
+        if let Some(search_term) = msg.search {
+            let search_pattern: String = format!("%{}%", search_term);
+
+            query = query.filter(
+                title
+                    .ilike(search_pattern.clone())
+                    .or(content.ilike(search_pattern)),
+            );
+        }
+
+        query.get_results::<Note>(&mut connection)
     }
 }
 

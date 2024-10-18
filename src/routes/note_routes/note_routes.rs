@@ -11,6 +11,6 @@ pub fn configuration(configure: &mut web::ServiceConfig) {
             .service(update_user_note)
             .service(delete_user_note)
             .wrap(from_fn(auth_stats_middleware))
-            .service(fetch_all_notes),
+            .service(fetch_notes),
     );
 }

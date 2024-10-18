@@ -6,15 +6,22 @@ use crate::utils::{
 use actix::Addr;
 use actix_web::{
     delete, get, patch, post,
-    web::{Data, Json, Path},
+    web::{Data, Json, Path, Query},
     HttpMessage, HttpRequest, HttpResponse, Responder,
 };
 use chrono::{DateTime, Utc};
 use serde::Deserialize;
 use utoipa::ToSchema;
 
+#[derive(Deserialize)]
+pub struct NoteQuery {
+    search: Option<String>,
+}
 #[utoipa::path(
     path = "/secure/api/notes",
+    params(
+        ("search" = String, Query, description = "Search terms to seach notes")
+    ),
     responses(
         (status = 200, description = "Get all notes"),
         (status = 404, description = "No notes found"),
@@ -25,10 +32,15 @@ use utoipa::ToSchema;
     )
 )]
 #[get("/notes")]
-pub async fn fetch_all_notes(state: Data<AppState>) -> impl Responder {
+pub async fn fetch_notes(state: Data<AppState>, query: Query<NoteQuery>) -> impl Responder {
     let db: Addr<DbActor> = state.as_ref().db.clone();
 
-    match db.send(FetchAllNotes).await {
+    match db
+        .send(FetchNotes {
+            search: query.search.clone(),
+        })
+        .await
+    {
         Ok(Ok(notes)) => HttpResponse::Ok().json(notes),
         Ok(Err(_)) => {
             HttpResponse::NotFound().json(serde_json::json!({ "message": "No notes found" }))

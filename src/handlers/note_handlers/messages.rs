@@ -13,7 +13,9 @@ pub struct FetchUserNotes {
 
 #[derive(Message)]
 #[rtype(result = "QueryResult<Vec<Note>>")]
-pub struct FetchAllNotes;
+pub struct FetchNotes {
+    pub search: Option<String>,
+}
 
 #[derive(Message, ToSchema)]
 #[rtype(result = "QueryResult<Note>")]

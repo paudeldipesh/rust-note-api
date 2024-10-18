@@ -14,7 +14,7 @@ mod models;
 mod routes;
 use handlers::{
     auth_handlers::{auth_handlers::*, messages::*, two_fa_handlers::*, user_handlers::*},
-    note_handlers::{messages::*, note_handlers::*},
+    note_handlers::note_handlers::*,
     test_handlers::test_handlers::*,
     transaction_handlers::transaction_handlers::*,
 };
@@ -53,7 +53,7 @@ async fn main() -> std::io::Result<()> {
         home,
         index,
         fetch_users,
-        fetch_all_notes,
+        fetch_notes,
         create_user_notes,
         fetch_user_notes,
         update_user_note,
@@ -72,15 +72,6 @@ async fn main() -> std::io::Result<()> {
     components(
         schemas(
             Claims,
-            CreateUserBody,
-            LoginUserBody,
-            CreateNoteBody,
-            UpdateNoteBody,
-            CreateUser,
-            LoginAndGetUser,
-            CreateNote,
-            VerifyOTPBody,
-            ValidateOTPBody,
         )
     ),
     modifiers(&SecurityAddon)
