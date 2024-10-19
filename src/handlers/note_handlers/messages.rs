@@ -12,13 +12,13 @@ pub struct FetchUserNotes {
 }
 
 #[derive(Message)]
-#[rtype(result = "QueryResult<Vec<Note>>")]
+#[rtype(result = "QueryResult<(i64, Vec<Note>, i64, i64)>")]
 pub struct FetchNotes {
     pub search: Option<String>,
     pub sort_field: Option<String>,
     pub sort_order: Option<String>,
     pub limit: Option<i64>,
-    pub offset: Option<i64>,
+    pub page: Option<i64>,
 }
 
 #[derive(Message, ToSchema)]

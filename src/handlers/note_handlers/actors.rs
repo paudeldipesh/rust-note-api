@@ -8,7 +8,7 @@ use diesel::associations::HasTable;
 use diesel::prelude::*;
 
 impl Handler<FetchNotes> for DbActor {
-    type Result = QueryResult<Vec<Note>>;
+    type Result = QueryResult<(i64, Vec<Note>, i64, i64)>;
 
     fn handle(&mut self, msg: FetchNotes, _ctx: &mut Self::Context) -> Self::Result {
         let mut connection = self
@@ -18,7 +18,7 @@ impl Handler<FetchNotes> for DbActor {
 
         let mut query = notes::table().into_boxed();
 
-        if let Some(search_term) = msg.search {
+        if let Some(ref search_term) = msg.search {
             let search_pattern: String = format!("%{}%", search_term);
 
             query = query.filter(
@@ -27,6 +27,19 @@ impl Handler<FetchNotes> for DbActor {
                     .or(content.ilike(search_pattern)),
             );
         }
+
+        let mut count_query = notes::table().into_boxed();
+
+        if let Some(search_term) = msg.search {
+            let search_pattern: String = format!("%{}%", search_term);
+            count_query = count_query.filter(
+                title
+                    .ilike(search_pattern.clone())
+                    .or(content.ilike(search_pattern)),
+            );
+        }
+
+        let total_notes: i64 = count_query.count().get_result(&mut connection)?;
 
         if let Some(sort_field) = msg.sort_field {
             match sort_field.as_str() {
@@ -52,15 +65,17 @@ impl Handler<FetchNotes> for DbActor {
             }
         }
 
-        if let Some(limit) = msg.limit {
-            query = query.limit(limit);
-        }
+        let limit: i64 = msg.limit.unwrap_or(10);
+        let page: i64 = msg.page.unwrap_or(1);
+        let offset: i64 = (page - 1) * limit;
 
-        if let Some(offset) = msg.offset {
-            query = query.offset(offset);
-        }
+        query = query.limit(limit).offset(offset);
 
-        query.get_results::<Note>(&mut connection)
+        let notes_result: Vec<Note> = query.get_results::<Note>(&mut connection)?;
+
+        let num_pages: i64 = (total_notes as f64 / limit as f64).ceil() as i64;
+
+        Ok((total_notes, notes_result, num_pages, page))
     }
 }
 

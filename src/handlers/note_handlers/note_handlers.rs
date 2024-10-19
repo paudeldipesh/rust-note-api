@@ -1,7 +1,10 @@
 use super::messages::*;
-use crate::utils::{
-    db::{AppState, DbActor},
-    jwt::Claims,
+use crate::{
+    models::Note,
+    utils::{
+        db::{AppState, DbActor},
+        jwt::Claims,
+    },
 };
 use actix::Addr;
 use actix_web::{
@@ -10,7 +13,7 @@ use actix_web::{
     HttpMessage, HttpRequest, HttpResponse, Responder,
 };
 use chrono::{DateTime, Utc};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 #[derive(Deserialize)]
@@ -19,8 +22,17 @@ pub struct NoteQuery {
     sort_field: Option<String>,
     sort_order: Option<String>,
     limit: Option<i64>,
-    offset: Option<i64>,
+    page: Option<i64>,
 }
+
+#[derive(Serialize)]
+struct NotesResponse {
+    total_notes: i64,
+    number_of_page: i64,
+    page: i64,
+    notes: Vec<Note>,
+}
+
 #[utoipa::path(
     path = "/admin/api/notes",
     params(
@@ -28,7 +40,7 @@ pub struct NoteQuery {
         ("sort_field" = String, Query, description = "Provide title or content"),
         ("sort_order" = String, Query, description = "Provide asc or desc"),
         ("limit" = String, Query, description = "How much data to display"),
-        ("offset" = String, Query, description = "Data to be skip"),
+        ("page" = String, Query, description = "Page number of the data"),
     ),
     responses(
         (status = 200, description = "Get all notes"),
@@ -49,11 +61,18 @@ pub async fn fetch_notes(state: Data<AppState>, query: Query<NoteQuery>) -> impl
             sort_field: query.sort_field.clone(),
             sort_order: query.sort_order.clone(),
             limit: query.limit.clone(),
-            offset: query.offset.clone(),
+            page: query.page.clone(),
         })
         .await
     {
-        Ok(Ok(notes)) => HttpResponse::Ok().json(notes),
+        Ok(Ok((total_notes, notes, number_of_page, page))) => {
+            HttpResponse::Ok().json(NotesResponse {
+                total_notes,
+                number_of_page,
+                page,
+                notes,
+            })
+        }
         Ok(Err(_)) => {
             HttpResponse::NotFound().json(serde_json::json!({ "message": "No notes found" }))
         }
