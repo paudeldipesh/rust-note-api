@@ -41,28 +41,28 @@ impl Handler<FetchNotes> for DbActor {
 
         let total_notes: i64 = count_query.count().get_result(&mut connection)?;
 
-        if let Some(sort_field) = msg.sort_field {
-            match sort_field.as_str() {
-                "title" => {
-                    if let Some(sort_order) = msg.sort_order {
-                        match sort_order.as_str() {
-                            "asc" => query = query.order(title.asc()),
-                            "desc" => query = query.order(title.desc()),
-                            _ => {}
-                        }
-                    }
+        let sort_field: String = msg
+            .sort_field
+            .clone()
+            .unwrap_or_else(|| "title".to_string());
+        let sort_order: String = msg.sort_order.clone().unwrap_or_else(|| "asc".to_string());
+
+        match sort_field.as_str() {
+            "title" => {
+                if sort_order == "asc" {
+                    query = query.order(title.asc());
+                } else if sort_order == "desc" {
+                    query = query.order(title.desc());
                 }
-                "content" => {
-                    if let Some(sort_order) = msg.sort_order {
-                        match sort_order.as_str() {
-                            "asc" => query = query.order(content.asc()),
-                            "desc" => query = query.order(content.desc()),
-                            _ => {}
-                        }
-                    }
-                }
-                _ => {}
             }
+            "content" => {
+                if sort_order == "asc" {
+                    query = query.order(content.asc());
+                } else if sort_order == "desc" {
+                    query = query.order(content.desc());
+                }
+            }
+            _ => {}
         }
 
         let limit: i64 = msg.limit.unwrap_or(10);
