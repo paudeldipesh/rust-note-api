@@ -52,6 +52,14 @@ impl Handler<FetchNotes> for DbActor {
             }
         }
 
+        if let Some(limit) = msg.limit {
+            query = query.limit(limit);
+        }
+
+        if let Some(offset) = msg.offset {
+            query = query.offset(offset);
+        }
+
         query.get_results::<Note>(&mut connection)
     }
 }

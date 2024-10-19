@@ -17,6 +17,8 @@ pub struct FetchNotes {
     pub search: Option<String>,
     pub sort_field: Option<String>,
     pub sort_order: Option<String>,
+    pub limit: Option<i64>,
+    pub offset: Option<i64>,
 }
 
 #[derive(Message, ToSchema)]

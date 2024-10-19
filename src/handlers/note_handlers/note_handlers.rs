@@ -18,6 +18,8 @@ pub struct NoteQuery {
     search: Option<String>,
     sort_field: Option<String>,
     sort_order: Option<String>,
+    limit: Option<i64>,
+    offset: Option<i64>,
 }
 #[utoipa::path(
     path = "/admin/api/notes",
@@ -25,6 +27,8 @@ pub struct NoteQuery {
         ("search" = String, Query, description = "Search terms to seach notes"),
         ("sort_field" = String, Query, description = "Provide title or content"),
         ("sort_order" = String, Query, description = "Provide asc or desc"),
+        ("limit" = String, Query, description = "How much data to display"),
+        ("offset" = String, Query, description = "Data to be skip"),
     ),
     responses(
         (status = 200, description = "Get all notes"),
@@ -44,6 +48,8 @@ pub async fn fetch_notes(state: Data<AppState>, query: Query<NoteQuery>) -> impl
             search: query.search.clone(),
             sort_field: query.sort_field.clone(),
             sort_order: query.sort_order.clone(),
+            limit: query.limit.clone(),
+            offset: query.offset.clone(),
         })
         .await
     {
