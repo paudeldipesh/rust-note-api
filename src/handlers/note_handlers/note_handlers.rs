@@ -23,6 +23,7 @@ pub struct NoteQuery {
     sort_order: Option<String>,
     limit: Option<i64>,
     page: Option<i64>,
+    active_status: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -36,11 +37,12 @@ struct NotesResponse {
 #[utoipa::path(
     path = "/admin/api/notes",
     params(
-        ("search" = String, Query, description = "Search terms to seach notes"),
-        ("sort_field" = String, Query, description = "Provide title or content"),
-        ("sort_order" = String, Query, description = "Provide asc or desc"),
-        ("limit" = String, Query, description = "How much data to display"),
-        ("page" = String, Query, description = "Page number of the data"),
+        ("search" = Option<String>, Query, description = "Search term for filtering notes"),
+        ("sort_field" = Option<String>, Query, description = "Field to sort by (e.g., title, content)"),
+        ("sort_order" = Option<String>, Query, description = "Order to sort (asc or desc)"),
+        ("page" = Option<i64>, Query, description = "Page number for pagination"),
+        ("limit" = Option<i64>, Query, description = "Limit of notes per page"),
+        ("active_status" = Option<String>, Query, description = "Filter by active status (active/inactive)")
     ),
     responses(
         (status = 200, description = "Get all notes"),
@@ -55,6 +57,12 @@ struct NotesResponse {
 pub async fn fetch_notes(state: Data<AppState>, query: Query<NoteQuery>) -> impl Responder {
     let db: Addr<DbActor> = state.as_ref().db.clone();
 
+    let active_status: Option<ActiveStatus> = match query.active_status.as_deref() {
+        Some("active") => Some(ActiveStatus::Active),
+        Some("inactive") => Some(ActiveStatus::Inactive),
+        _ => None,
+    };
+
     match db
         .send(FetchNotes {
             search: query.search.clone(),
@@ -62,6 +70,7 @@ pub async fn fetch_notes(state: Data<AppState>, query: Query<NoteQuery>) -> impl
             sort_order: query.sort_order.clone(),
             limit: query.limit.clone(),
             page: query.page.clone(),
+            active_status,
         })
         .await
     {
@@ -174,6 +183,8 @@ pub struct UpdateNoteBody {
     pub title: Option<String>,
     #[schema(example = "My Note")]
     pub content: Option<String>,
+    #[schema(example = true)]
+    pub active: Option<bool>,
 }
 
 #[utoipa::path(
@@ -216,6 +227,7 @@ pub async fn update_user_note(
     if let Some(note) = existing_note {
         let updated_title: String = body.title.clone().unwrap_or(note.title);
         let updated_content: String = body.content.clone().unwrap_or(note.content);
+        let active_status: bool = body.active.clone().unwrap_or(true);
 
         let updated_on: DateTime<Utc> = Utc::now();
 
@@ -224,6 +236,7 @@ pub async fn update_user_note(
                 id: note_id,
                 title: updated_title,
                 content: updated_content,
+                active: active_status,
                 created_by: claims.id,
                 updated_on,
             })

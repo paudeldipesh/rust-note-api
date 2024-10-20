@@ -12,6 +12,7 @@ pub struct Note {
     pub id: i32,
     pub title: String,
     pub content: String,
+    pub active: Option<bool>,
     pub created_by: i32,
     pub created_on: Option<DateTime<Utc>>,
     pub updated_on: Option<DateTime<Utc>>,

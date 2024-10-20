@@ -17,6 +17,7 @@ CREATE TABLE
     id SERIAL PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
     content TEXT NOT NULL,
+    active BOOLEAN DEFAULT FALSE,
     created_by INT4 NOT NULL,
     created_on TIMESTAMPTZ,
     updated_on TIMESTAMPTZ,

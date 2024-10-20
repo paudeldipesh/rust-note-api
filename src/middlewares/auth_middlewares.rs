@@ -116,7 +116,7 @@ async fn check_auth_permissions(
 
     if !allowed_roles.contains(&user_role) {
         return Err(ErrorForbidden(
-            serde_json::json!({ "message": "Only admin can access this route" }),
+            serde_json::json!({ "message": "Unauthorized to access this route" }),
         ));
     }
 

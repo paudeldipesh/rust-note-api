@@ -28,6 +28,10 @@ impl Handler<FetchNotes> for DbActor {
             );
         }
 
+        if let Some(active_status) = msg.active_status {
+            query = query.filter(active.eq(active_status.as_bool()));
+        }
+
         let mut count_query = notes::table().into_boxed();
 
         if let Some(search_term) = msg.search {
@@ -39,12 +43,17 @@ impl Handler<FetchNotes> for DbActor {
             );
         }
 
+        if let Some(active_status) = msg.active_status {
+            count_query = count_query.filter(active.eq(active_status.as_bool()));
+        }
+
         let total_notes: i64 = count_query.count().get_result(&mut connection)?;
 
         let sort_field: String = msg
             .sort_field
             .clone()
             .unwrap_or_else(|| "title".to_string());
+
         let sort_order: String = msg.sort_order.clone().unwrap_or_else(|| "asc".to_string());
 
         match sort_field.as_str() {
@@ -117,6 +126,7 @@ impl Handler<CreateNote> for DbActor {
                 note_id,
                 title,
                 content,
+                active.nullable(),
                 created_by,
                 created_on.nullable(),
                 updated_on.nullable(),
@@ -139,6 +149,7 @@ impl Handler<UpdateNote> for DbActor {
                 title.eq(msg.title),
                 content.eq(msg.content),
                 created_by.eq(msg.created_by),
+                active.eq(msg.active),
                 updated_on.eq(msg.updated_on),
             ))
             .get_result::<Note>(&mut connection)

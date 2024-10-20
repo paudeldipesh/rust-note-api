@@ -6,6 +6,7 @@ diesel::table! {
         #[max_length = 255]
         title -> Varchar,
         content -> Text,
+        active -> Nullable<Bool>,
         created_by -> Int4,
         created_on -> Nullable<Timestamptz>,
         updated_on -> Nullable<Timestamptz>,
