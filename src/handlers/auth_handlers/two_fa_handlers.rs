@@ -67,8 +67,8 @@ pub async fn generate_otp_handler(state: Data<AppState>, req: HttpRequest) -> im
             email,
             opt_verified,
             opt_enabled,
-            opt_auth_url: otp_auth_url.clone(),
-            opt_base32: otp_base32.clone(),
+            opt_auth_url: Some(otp_auth_url.clone()),
+            opt_base32: Some(otp_base32.clone()),
         })
         .await
     {
@@ -160,8 +160,8 @@ pub async fn verify_otp_handler(
                     email: user_email,
                     opt_verified,
                     opt_enabled,
-                    opt_base32: user.opt_base32.clone().unwrap(),
-                    opt_auth_url: user.opt_auth_url.clone().unwrap(),
+                    opt_base32: Some(user.opt_base32.unwrap().clone()),
+                    opt_auth_url: Some(user.opt_auth_url.unwrap().clone()),
                 })
                 .await
             {
@@ -297,8 +297,8 @@ pub async fn disable_otp_handler(state: Data<AppState>, req: HttpRequest) -> imp
             email: claims.email,
             opt_verified: false,
             opt_enabled: false,
-            opt_auth_url: String::new(),
-            opt_base32: String::new(),
+            opt_auth_url: None,
+            opt_base32: None,
         })
         .await
     {

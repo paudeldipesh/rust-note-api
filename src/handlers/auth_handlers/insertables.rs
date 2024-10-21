@@ -16,6 +16,6 @@ pub struct NewUser {
 pub struct OTPInfoInsertable {
     pub opt_verified: bool,
     pub opt_enabled: bool,
-    pub opt_base32: String,
-    pub opt_auth_url: String,
+    pub opt_base32: Option<String>,
+    pub opt_auth_url: Option<String>,
 }

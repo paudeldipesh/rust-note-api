@@ -7,6 +7,7 @@ use crate::{
     },
 };
 use actix::Addr;
+use actix_multipart::form::{tempfile::TempFile, text::Text, MultipartForm};
 use actix_web::{
     delete, get, patch, post,
     web::{Data, Json, Path, Query},
@@ -14,6 +15,7 @@ use actix_web::{
 };
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
 use utoipa::ToSchema;
 
 #[derive(Deserialize)]
@@ -122,12 +124,11 @@ pub async fn fetch_user_notes(state: Data<AppState>, req: HttpRequest) -> impl R
     }
 }
 
-#[derive(Deserialize, ToSchema)]
+#[derive(Debug, MultipartForm)]
 pub struct CreateNoteBody {
-    #[schema(example = "My Note", required = true)]
-    pub title: String,
-    #[schema(example = "This is my note", required = true)]
-    pub content: String,
+    title: Text<String>,
+    content: Text<String>,
+    image: Option<TempFile>,
 }
 
 #[utoipa::path(
@@ -146,7 +147,7 @@ pub struct CreateNoteBody {
 pub async fn create_user_notes(
     state: Data<AppState>,
     req: HttpRequest,
-    body: Json<CreateNoteBody>,
+    body: MultipartForm<CreateNoteBody>,
 ) -> impl Responder {
     let claims: Claims = match req.extensions().get::<Claims>() {
         Some(claims) => claims.clone(),
@@ -157,23 +158,86 @@ pub async fn create_user_notes(
     };
 
     let db: Addr<DbActor> = state.as_ref().db.clone();
-
     let created_on: DateTime<Utc> = Utc::now();
     let updated_on: DateTime<Utc> = Utc::now();
 
-    match db
-        .send(CreateNote {
-            title: body.title.to_string(),
-            content: body.content.to_string(),
-            created_by: claims.id,
-            created_on,
-            updated_on,
-        })
-        .await
-    {
-        Ok(Ok(note)) => HttpResponse::Ok().json(note),
-        _ => HttpResponse::InternalServerError()
-            .json(serde_json::json!({ "message": "Failed to create note" })),
+    if let Some(image) = &body.0.image.as_ref() {
+        let file_name: Option<String> = image.file_name.clone();
+        let file_size: usize = image.size;
+        let max_file_size: u64 = 10485760;
+        let temp_file_path: &std::path::Path = image.file.path();
+
+        match &file_name {
+            Some(name) => {
+                if !name.ends_with(".png") && !name.ends_with(".jpg") {
+                    return HttpResponse::BadRequest()
+                        .json(serde_json::json!({ "message": "Invalid file type"}));
+                }
+            }
+            None => {
+                return HttpResponse::BadRequest()
+                    .json(serde_json::json!({ "message": "File name is missing"}));
+            }
+        }
+
+        match file_size {
+            0 => {
+                return HttpResponse::BadRequest()
+                    .json(serde_json::json!({ "message": "Invalid file size"}));
+            }
+            length if length > max_file_size as usize => {
+                return HttpResponse::BadRequest()
+                    .json(serde_json::json!({ "message": "File size too long"}));
+            }
+            _ => {}
+        }
+
+        let time_stamp: i64 = Utc::now().timestamp();
+        let mut file_path: PathBuf = PathBuf::from("./public");
+        let new_file_name: String = format!("{}-{}", time_stamp, file_name.unwrap());
+        file_path.push(&new_file_name);
+
+        match std::fs::copy(temp_file_path, file_path) {
+            Ok(_) => {
+                println!("Image uploaded on the server");
+                std::fs::remove_file(temp_file_path).unwrap_or_default();
+            }
+            Err(_) => println!("Unable to upload"),
+        }
+
+        match db
+            .send(CreateNote {
+                title: body.title.clone(),
+                content: body.content.clone(),
+                created_by: claims.id,
+                created_on,
+                updated_on,
+            })
+            .await
+        {
+            Ok(Ok(note)) => return HttpResponse::Ok().json(note),
+            _ => {
+                return HttpResponse::InternalServerError()
+                    .json(serde_json::json!({ "message": "Failed to create note" }))
+            }
+        }
+    } else {
+        match db
+            .send(CreateNote {
+                title: body.title.clone(),
+                content: body.content.clone(),
+                created_by: claims.id,
+                created_on,
+                updated_on,
+            })
+            .await
+        {
+            Ok(Ok(note)) => return HttpResponse::Ok().json(note),
+            _ => {
+                return HttpResponse::InternalServerError()
+                    .json(serde_json::json!({ "message": "Failed to create note" }))
+            }
+        }
     }
 }
 
