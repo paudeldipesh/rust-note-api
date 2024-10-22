@@ -1,7 +1,7 @@
 use super::insertables::NewNote;
 use super::messages::*;
 use crate::models::Note;
-use crate::schema::notes::{dsl::*, id as note_id};
+use crate::schema::notes::dsl::*;
 use crate::utils::db::DbActor;
 use actix::Handler;
 use diesel::associations::HasTable;
@@ -115,6 +115,7 @@ impl Handler<CreateNote> for DbActor {
         let new_note: NewNote = NewNote {
             title: msg.title,
             content: msg.content,
+            image_url: msg.image_url,
             created_by: msg.created_by,
             created_on: msg.created_on,
             updated_on: msg.updated_on,
@@ -122,15 +123,6 @@ impl Handler<CreateNote> for DbActor {
 
         diesel::insert_into(notes)
             .values(new_note)
-            .returning((
-                note_id,
-                title,
-                content,
-                active.nullable(),
-                created_by,
-                created_on.nullable(),
-                updated_on.nullable(),
-            ))
             .get_result::<Note>(&mut connection)
     }
 }

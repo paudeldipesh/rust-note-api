@@ -1,5 +1,5 @@
 use crate::schema::notes;
-use chrono::{DateTime, Utc};
+use chrono::NaiveDateTime;
 use diesel::Insertable;
 use serde::Serialize;
 use utoipa::ToSchema;
@@ -9,7 +9,8 @@ use utoipa::ToSchema;
 pub struct NewNote {
     pub title: String,
     pub content: String,
+    pub image_url: Option<String>,
     pub created_by: i32,
-    pub created_on: DateTime<Utc>,
-    pub updated_on: DateTime<Utc>,
+    pub created_on: NaiveDateTime,
+    pub updated_on: NaiveDateTime,
 }

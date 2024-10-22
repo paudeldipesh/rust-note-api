@@ -13,7 +13,7 @@ use actix_web::{
     web::{Data, Json, Path, Query},
     HttpMessage, HttpRequest, HttpResponse, Responder,
 };
-use chrono::{DateTime, Utc};
+use chrono::{NaiveDateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use utoipa::ToSchema;
@@ -158,8 +158,8 @@ pub async fn create_user_notes(
     };
 
     let db: Addr<DbActor> = state.as_ref().db.clone();
-    let created_on: DateTime<Utc> = Utc::now();
-    let updated_on: DateTime<Utc> = Utc::now();
+    let created_on: NaiveDateTime = Utc::now().naive_local();
+    let updated_on: NaiveDateTime = Utc::now().naive_local();
 
     if let Some(image) = &body.0.image.as_ref() {
         let file_name: Option<String> = image.file_name.clone();
@@ -210,6 +210,7 @@ pub async fn create_user_notes(
                 title: body.title.clone(),
                 content: body.content.clone(),
                 created_by: claims.id,
+                image_url: Some(new_file_name),
                 created_on,
                 updated_on,
             })
@@ -227,6 +228,7 @@ pub async fn create_user_notes(
                 title: body.title.clone(),
                 content: body.content.clone(),
                 created_by: claims.id,
+                image_url: None,
                 created_on,
                 updated_on,
             })
@@ -291,14 +293,16 @@ pub async fn update_user_note(
     if let Some(note) = existing_note {
         let updated_title: String = body.title.clone().unwrap_or(note.title);
         let updated_content: String = body.content.clone().unwrap_or(note.content);
+        let existing_image_url: String = note.image_url.unwrap();
         let active_status: bool = body.active.clone().unwrap_or(true);
 
-        let updated_on: DateTime<Utc> = Utc::now();
+        let updated_on: NaiveDateTime = Utc::now().naive_local();
 
         match db
             .send(UpdateNote {
                 id: note_id,
                 title: updated_title,
+                _image_url: Some(existing_image_url),
                 content: updated_content,
                 active: active_status,
                 created_by: claims.id,

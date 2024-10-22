@@ -1,6 +1,6 @@
 use crate::models::Note;
 use actix::Message;
-use chrono::{offset::Utc, DateTime};
+use chrono::NaiveDateTime;
 use diesel::QueryResult;
 use serde::Deserialize;
 use utoipa::ToSchema;
@@ -42,9 +42,10 @@ pub struct FetchNotes {
 pub struct CreateNote {
     pub title: String,
     pub content: String,
+    pub image_url: Option<String>,
     pub created_by: i32,
-    pub created_on: DateTime<Utc>,
-    pub updated_on: DateTime<Utc>,
+    pub created_on: NaiveDateTime,
+    pub updated_on: NaiveDateTime,
 }
 
 #[derive(Message)]
@@ -52,10 +53,11 @@ pub struct CreateNote {
 pub struct UpdateNote {
     pub id: i32,
     pub title: String,
+    pub _image_url: Option<String>,
     pub content: String,
     pub created_by: i32,
     pub active: bool,
-    pub updated_on: DateTime<Utc>,
+    pub updated_on: NaiveDateTime,
 }
 
 #[derive(Message)]

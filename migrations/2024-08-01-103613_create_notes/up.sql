@@ -17,6 +17,7 @@ CREATE TABLE
     id SERIAL PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
     content TEXT NOT NULL,
+    image_url VARCHAR(255) DEFAULT NULL,
     active BOOLEAN DEFAULT FALSE,
     created_by INT4 NOT NULL,
     created_on TIMESTAMPTZ,
