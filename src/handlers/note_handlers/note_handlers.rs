@@ -2,6 +2,7 @@ use super::messages::*;
 use crate::{
     models::Note,
     utils::{
+        self,
         db::{AppState, DbActor},
         jwt::Claims,
     },
@@ -14,8 +15,11 @@ use actix_web::{
     HttpMessage, HttpRequest, HttpResponse, Responder,
 };
 use chrono::{NaiveDateTime, Utc};
+use reqwest::{
+    multipart::{Form, Part},
+    Client,
+};
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
 use utoipa::ToSchema;
 
 #[derive(Deserialize)]
@@ -124,6 +128,48 @@ pub async fn fetch_user_notes(state: Data<AppState>, req: HttpRequest) -> impl R
     }
 }
 
+#[derive(Deserialize)]
+struct CloudinaryResponse {
+    secure_url: String,
+}
+
+async fn upload_image_to_cloudinary(
+    temp_file_path: &std::path::Path,
+    cloud_name: String,
+    upload_preset: String,
+) -> Result<String, Box<dyn std::error::Error>> {
+    let client: Client = Client::new();
+
+    let file: Vec<u8> = std::fs::read(temp_file_path)?;
+
+    let part: Part = Part::bytes(file).file_name(
+        temp_file_path
+            .file_name()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .to_string(),
+    );
+
+    let form: Form = Form::new()
+        .part("file", part)
+        .text("upload_preset", upload_preset);
+
+    let url: String = format!(
+        "https://api.cloudinary.com/v1_1/{}/image/upload",
+        cloud_name
+    );
+
+    let response = client
+        .post(url)
+        .multipart(form)
+        .send()
+        .await?
+        .json::<CloudinaryResponse>()
+        .await?;
+
+    Ok(response.secure_url)
+}
+
 #[derive(Debug, MultipartForm)]
 pub struct CreateNoteBody {
     title: Text<String>,
@@ -192,25 +238,28 @@ pub async fn create_user_notes(
             _ => {}
         }
 
-        let time_stamp: i64 = Utc::now().timestamp();
-        let mut file_path: PathBuf = PathBuf::from("./public");
-        let new_file_name: String = format!("{}-{}", time_stamp, file_name.unwrap());
-        file_path.push(&new_file_name);
+        let cloud_name: String = (*utils::constants::CLOUDINARY_CLOUD_NAME).clone();
+        let upload_preset: String = (*utils::constants::CLOUDINARY_UPLOAD_PRESET).clone();
 
-        match std::fs::copy(temp_file_path, file_path) {
-            Ok(_) => {
-                println!("Image uploaded on the server");
-                std::fs::remove_file(temp_file_path).unwrap_or_default();
-            }
-            Err(_) => println!("Unable to upload"),
-        }
+        let image_url =
+            match upload_image_to_cloudinary(temp_file_path, cloud_name, upload_preset).await {
+                Ok(url) => {
+                    std::fs::remove_file(temp_file_path).unwrap_or_default();
+                    Some(url)
+                }
+                Err(e) => {
+                    println!("Error uploading image: {}", e);
+                    return HttpResponse::InternalServerError()
+                        .json(serde_json::json!({"message": "Failed to upload image"}));
+                }
+            };
 
         match db
             .send(CreateNote {
                 title: body.title.clone(),
                 content: body.content.clone(),
                 created_by: claims.id,
-                image_url: Some(new_file_name),
+                image_url,
                 created_on,
                 updated_on,
             })
