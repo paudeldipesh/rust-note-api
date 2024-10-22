@@ -1,4 +1,5 @@
 use super::messages::*;
+use crate::handlers::note_handlers::utils::*;
 use crate::{
     models::Note,
     utils::{
@@ -15,10 +16,6 @@ use actix_web::{
     HttpMessage, HttpRequest, HttpResponse, Responder,
 };
 use chrono::{NaiveDateTime, Utc};
-use reqwest::{
-    multipart::{Form, Part},
-    Client,
-};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
@@ -128,48 +125,6 @@ pub async fn fetch_user_notes(state: Data<AppState>, req: HttpRequest) -> impl R
     }
 }
 
-#[derive(Deserialize)]
-struct CloudinaryResponse {
-    secure_url: String,
-}
-
-async fn upload_image_to_cloudinary(
-    temp_file_path: &std::path::Path,
-    cloud_name: String,
-    upload_preset: String,
-) -> Result<String, Box<dyn std::error::Error>> {
-    let client: Client = Client::new();
-
-    let file: Vec<u8> = std::fs::read(temp_file_path)?;
-
-    let part: Part = Part::bytes(file).file_name(
-        temp_file_path
-            .file_name()
-            .unwrap_or_default()
-            .to_string_lossy()
-            .to_string(),
-    );
-
-    let form: Form = Form::new()
-        .part("file", part)
-        .text("upload_preset", upload_preset);
-
-    let url: String = format!(
-        "https://api.cloudinary.com/v1_1/{}/image/upload",
-        cloud_name
-    );
-
-    let response = client
-        .post(url)
-        .multipart(form)
-        .send()
-        .await?
-        .json::<CloudinaryResponse>()
-        .await?;
-
-    Ok(response.secure_url)
-}
-
 #[derive(Debug, MultipartForm)]
 pub struct CreateNoteBody {
     title: Text<String>,
@@ -213,29 +168,8 @@ pub async fn create_user_notes(
         let max_file_size: u64 = 10485760;
         let temp_file_path: &std::path::Path = image.file.path();
 
-        match &file_name {
-            Some(name) => {
-                if !name.ends_with(".png") && !name.ends_with(".jpg") {
-                    return HttpResponse::BadRequest()
-                        .json(serde_json::json!({ "message": "Invalid file type"}));
-                }
-            }
-            None => {
-                return HttpResponse::BadRequest()
-                    .json(serde_json::json!({ "message": "File name is missing"}));
-            }
-        }
-
-        match file_size {
-            0 => {
-                return HttpResponse::BadRequest()
-                    .json(serde_json::json!({ "message": "Invalid file size"}));
-            }
-            length if length > max_file_size as usize => {
-                return HttpResponse::BadRequest()
-                    .json(serde_json::json!({ "message": "File size too long"}));
-            }
-            _ => {}
+        if let Err(err) = upload_image_validation(file_name, file_size, max_file_size) {
+            return err;
         }
 
         let cloud_name: String = (*utils::constants::CLOUDINARY_CLOUD_NAME).clone();
@@ -342,7 +276,7 @@ pub async fn update_user_note(
     if let Some(note) = existing_note {
         let updated_title: String = body.title.clone().unwrap_or(note.title);
         let updated_content: String = body.content.clone().unwrap_or(note.content);
-        let existing_image_url: String = note.image_url.unwrap();
+        let existing_image_url: String = note.image_url.unwrap_or_else(|| String::new());
         let active_status: bool = body.active.clone().unwrap_or(true);
 
         let updated_on: NaiveDateTime = Utc::now().naive_local();
