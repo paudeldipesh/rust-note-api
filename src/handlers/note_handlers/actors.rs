@@ -141,6 +141,7 @@ impl Handler<UpdateNote> for DbActor {
                 title.eq(msg.title),
                 content.eq(msg.content),
                 created_by.eq(msg.created_by),
+                image_url.eq(msg.image_url),
                 active.eq(msg.active),
                 updated_on.eq(msg.updated_on),
             ))

@@ -53,7 +53,7 @@ pub struct CreateNote {
 pub struct UpdateNote {
     pub id: i32,
     pub title: String,
-    pub _image_url: Option<String>,
+    pub image_url: Option<String>,
     pub content: String,
     pub created_by: i32,
     pub active: bool,

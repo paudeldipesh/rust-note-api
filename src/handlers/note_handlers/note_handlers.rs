@@ -12,12 +12,11 @@ use actix::Addr;
 use actix_multipart::form::{tempfile::TempFile, text::Text, MultipartForm};
 use actix_web::{
     delete, get, patch, post,
-    web::{Data, Json, Path, Query},
+    web::{Data, Path, Query},
     HttpMessage, HttpRequest, HttpResponse, Responder,
 };
 use chrono::{NaiveDateTime, Utc};
 use serde::{Deserialize, Serialize};
-use utoipa::ToSchema;
 
 #[derive(Deserialize)]
 pub struct NoteQuery {
@@ -226,14 +225,12 @@ pub async fn create_user_notes(
     }
 }
 
-#[derive(Deserialize, ToSchema)]
+#[derive(Debug, MultipartForm)]
 pub struct UpdateNoteBody {
-    #[schema(example = "My Note")]
-    pub title: Option<String>,
-    #[schema(example = "My Note")]
-    pub content: Option<String>,
-    #[schema(example = true)]
-    pub active: Option<bool>,
+    pub title: Option<Text<String>>,
+    pub content: Option<Text<String>>,
+    pub active: Option<Text<bool>>,
+    pub image: Option<TempFile>,
 }
 
 #[utoipa::path(
@@ -253,7 +250,7 @@ pub async fn update_user_note(
     state: Data<AppState>,
     req: HttpRequest,
     path: Path<i32>,
-    body: Json<UpdateNoteBody>,
+    body: MultipartForm<UpdateNoteBody>,
 ) -> impl Responder {
     let note_id: i32 = path.into_inner();
 
@@ -274,10 +271,47 @@ pub async fn update_user_note(
         };
 
     if let Some(note) = existing_note {
-        let updated_title: String = body.title.clone().unwrap_or(note.title);
-        let updated_content: String = body.content.clone().unwrap_or(note.content);
-        let existing_image_url: String = note.image_url.unwrap_or_else(|| String::new());
-        let active_status: bool = body.active.clone().unwrap_or(true);
+        let updated_title: String = body
+            .0
+            .title
+            .as_ref()
+            .map(|text| text.to_string())
+            .unwrap_or(note.title);
+        let updated_content: String = body
+            .0
+            .content
+            .as_ref()
+            .map(|text| text.to_string())
+            .unwrap_or(note.content);
+        let active_status: bool = body.0.active.as_ref().map(|text| text.0).unwrap_or(true);
+
+        let mut updated_image_url: Option<String> = note.image_url.clone();
+
+        if let Some(image) = &body.0.image.as_ref() {
+            let file_name: Option<String> = image.file_name.clone();
+            let file_size: usize = image.size;
+            let max_file_size: u64 = 10485760;
+            let temp_file_path: &std::path::Path = image.file.path();
+
+            if let Err(err) = upload_image_validation(file_name, file_size, max_file_size) {
+                return err;
+            }
+
+            let cloud_name: String = (*utils::constants::CLOUDINARY_CLOUD_NAME).clone();
+            let upload_preset: String = (*utils::constants::CLOUDINARY_UPLOAD_PRESET).clone();
+
+            match upload_image_to_cloudinary(temp_file_path, cloud_name, upload_preset).await {
+                Ok(url) => {
+                    std::fs::remove_file(temp_file_path).unwrap_or_default();
+                    updated_image_url = Some(url);
+                }
+                Err(e) => {
+                    println!("Error uploading image: {}", e);
+                    return HttpResponse::InternalServerError()
+                        .json(serde_json::json!({ "message": "Failed to upload image" }));
+                }
+            };
+        }
 
         let updated_on: NaiveDateTime = Utc::now().naive_local();
 
@@ -285,8 +319,8 @@ pub async fn update_user_note(
             .send(UpdateNote {
                 id: note_id,
                 title: updated_title,
-                _image_url: Some(existing_image_url),
                 content: updated_content,
+                image_url: updated_image_url,
                 active: active_status,
                 created_by: claims.id,
                 updated_on,
