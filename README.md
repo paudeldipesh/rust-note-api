@@ -10,6 +10,8 @@ A simple RESTful API for managing notes, secured with JWT authentication, built 
 
 - Create a new note
 
+- Add single image for the note
+
 - Read an existing note by ID
 
 - Update an existing note
@@ -22,11 +24,15 @@ A simple RESTful API for managing notes, secured with JWT authentication, built 
 
 - Two-factor authentication
 
+- Moonpay API (third-party calls)
+
 ## Requirements
 
 - Rust (latest stable version)
 
 - Diesel CLI
+
+- PostgreSQL
 
 ## Setup
 
