@@ -59,7 +59,7 @@ impl Handler<LoginAndGetUser> for DbActor {
         let mut connection = self
             .0
             .get()
-            .expect("Login User: Unable to establish connection");
+            .expect("Login And Get User: Unable to establish connection");
 
         users
             .filter(email.eq(&msg.email))
@@ -74,7 +74,7 @@ impl Handler<OTPMessage> for DbActor {
         let mut connection = self
             .0
             .get()
-            .expect("Generate OTP: Unable to establish connection");
+            .expect("OTP Message: Unable to establish connection");
 
         diesel::update(users.filter(email.eq(&msg.email)))
             .set(OTPInfoInsertable {

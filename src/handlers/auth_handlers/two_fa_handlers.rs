@@ -7,7 +7,6 @@ use actix_web::{
 use rand::{rngs::ThreadRng, Rng};
 use serde::{Deserialize, Serialize};
 use totp_rs::{Algorithm, Secret, TOTP};
-use utoipa::ToSchema;
 
 use crate::{
     utils::{
@@ -82,9 +81,8 @@ pub async fn generate_otp_handler(state: Data<AppState>, req: HttpRequest) -> im
     }
 }
 
-#[derive(Deserialize, ToSchema)]
+#[derive(Deserialize)]
 pub struct VerifyOTPBody {
-    #[schema(example = "123456", required = true)]
     pub otp_token: String,
 }
 
@@ -186,9 +184,8 @@ pub async fn verify_otp_handler(
     }
 }
 
-#[derive(Deserialize, ToSchema)]
+#[derive(Deserialize)]
 pub struct ValidateOTPBody {
-    #[schema(example = "123456", required = true)]
     pub otp_token: String,
 }
 #[utoipa::path(

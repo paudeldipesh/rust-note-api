@@ -110,7 +110,7 @@ impl Handler<CreateNote> for DbActor {
         let mut connection = self
             .0
             .get()
-            .expect("Create User Note: Unable to establish connection");
+            .expect("Create Note: Unable to establish connection");
 
         let new_note: NewNote = NewNote {
             title: msg.title,

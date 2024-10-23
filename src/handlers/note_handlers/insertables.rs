@@ -2,9 +2,8 @@ use crate::schema::notes;
 use chrono::NaiveDateTime;
 use diesel::Insertable;
 use serde::Serialize;
-use utoipa::ToSchema;
 
-#[derive(Insertable, Serialize, Clone, ToSchema)]
+#[derive(Insertable, Serialize, Clone)]
 #[diesel(table_name=notes)]
 pub struct NewNote {
     pub title: String,

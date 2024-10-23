@@ -1,13 +1,12 @@
 use crate::models::User;
 use actix::Message;
 use diesel::QueryResult;
-use utoipa::ToSchema;
 
 #[derive(Message)]
 #[rtype(result = "QueryResult<Vec<User>>")]
 pub struct FetchUser;
 
-#[derive(Message, ToSchema)]
+#[derive(Message)]
 #[rtype(result = "QueryResult<User>")]
 pub struct CreateUser {
     pub username: String,
@@ -16,7 +15,7 @@ pub struct CreateUser {
 }
 
 #[allow(dead_code)]
-#[derive(Message, ToSchema)]
+#[derive(Message)]
 #[rtype(result = "QueryResult<User>")]
 pub struct LoginAndGetUser {
     pub email: String,

@@ -14,15 +14,11 @@ use actix_web::{
     HttpResponse, Responder,
 };
 use serde::{Deserialize, Serialize};
-use utoipa::ToSchema;
 
-#[derive(Deserialize, ToSchema)]
+#[derive(Deserialize)]
 pub struct CreateUserBody {
-    #[schema(example = "testuser", required = true)]
     pub username: String,
-    #[schema(example = "testuser@gmail.com", required = true)]
     pub email: String,
-    #[schema(example = "testuser", required = true)]
     pub password: String,
 }
 
@@ -62,11 +58,9 @@ pub async fn register_user(state: Data<AppState>, body: Json<CreateUserBody>) ->
     }
 }
 
-#[derive(Deserialize, ToSchema)]
+#[derive(Deserialize)]
 pub struct LoginUserBody {
-    #[schema(example = "testuser@gmail.com", required = true)]
     pub email: String,
-    #[schema(example = "testuser", required = true)]
     pub password: String,
 }
 

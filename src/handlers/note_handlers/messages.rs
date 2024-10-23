@@ -3,7 +3,6 @@ use actix::Message;
 use chrono::NaiveDateTime;
 use diesel::QueryResult;
 use serde::Deserialize;
-use utoipa::ToSchema;
 
 #[derive(Debug, Deserialize, Clone, Copy)]
 pub enum ActiveStatus {
@@ -37,7 +36,7 @@ pub struct FetchNotes {
     pub active_status: Option<ActiveStatus>,
 }
 
-#[derive(Message, ToSchema)]
+#[derive(Message)]
 #[rtype(result = "QueryResult<Note>")]
 pub struct CreateNote {
     pub title: String,
