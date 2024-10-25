@@ -9,12 +9,14 @@ struct BuyListsQuery {
 }
 
 #[utoipa::path(
-    path = "/secure/transaction/buy/lists",
+    path = "/fetch/buy/lists",
     params(
-        ("moonpay_token" = String, Query, description = "Moonpay token of the user"),
+        ("moonpay_token" = String, Query, description = "Moonpay Token"),
     ),
     responses(
-        (status = 200, description = "Handles buy lists queries"),
+        (status = 200, description = "Handles buy lists queries and fetches the user's transactions."),
+        (status = 401, description = "Unauthorized access, missing or invalid token."),
+        (status = 500, description = "Failed to fetch transactions from Moonpay."),
     ),
     security(
         ("bearer_auth" = [])
@@ -28,7 +30,7 @@ pub async fn get_buy_lists(req: HttpRequest, query: web::Query<BuyListsQuery>) -
         Some(claims) => claims.clone(),
         None => {
             return HttpResponse::Unauthorized()
-                .json(serde_json::json!({ "message": "Unauthorized access" }));
+                .json(serde_json::json!({ "message": "unauthorized access" }));
         }
     };
 
@@ -45,19 +47,19 @@ pub async fn get_buy_lists(req: HttpRequest, query: web::Query<BuyListsQuery>) -
                 match response.json::<serde_json::Value>().await {
                     Ok(json) => HttpResponse::Ok().json(json),
                     Err(_) => HttpResponse::InternalServerError()
-                        .json(serde_json::json!({ "error": "Failed to parse response" })),
+                        .json(serde_json::json!({ "error": "failed to parse response" })),
                 }
             } else {
                 let status_code: reqwest::StatusCode = response.status();
 
                 HttpResponse::BadRequest().json(serde_json::json!({
-                    "error": "Failed to fetch transaction info",
+                    "error": "failed to fetch transaction info",
                     "status": status_code.as_u16(),
                 }))
             }
         }
         Err(error) => HttpResponse::InternalServerError().json(serde_json::json!({
-            "error": "Request error",
+            "error": "request error",
             "details": error.to_string(),
         })),
     }
@@ -78,7 +80,9 @@ struct BuyQuoteInfo {
         ("crypto_amount" = u32, Query, description = "Quote Currency Amount"),
     ),
     responses(
-        (status = 200, description = "Handles buy quote queries"),
+        (status = 200, description = "Handles buy quote queries and returns the quote."),
+        (status = 400, description = "Invalid input parameters."),
+        (status = 500, description = "Failed to fetch buy quote from Moonpay."),
     )
 )]
 #[get("/buy/quote")]
@@ -104,19 +108,19 @@ pub async fn get_buy_quote(query: web::Query<BuyQuoteInfo>) -> impl Responder {
                 match response.json::<serde_json::Value>().await {
                     Ok(json) => HttpResponse::Ok().json(json),
                     Err(_) => HttpResponse::InternalServerError()
-                        .json(serde_json::json!({ "error": "Failed to parse response" })),
+                        .json(serde_json::json!({ "error": "failed to parse response" })),
                 }
             } else {
                 let status_code: reqwest::StatusCode = response.status();
 
                 HttpResponse::BadRequest().json(serde_json::json!({
-                    "error": "Failed to fetch buy quote info",
+                    "error": "failed to fetch buy quote info",
                     "status": status_code.as_u16(),
                 }))
             }
         }
         Err(error) => HttpResponse::InternalServerError().json(serde_json::json!({
-            "error": "Request error",
+            "error": "request error",
             "details": error.to_string(),
         })),
     }
@@ -130,10 +134,12 @@ struct BuyInfoQuery {
 #[utoipa::path(
     path = "/transaction/buy/info",
     params(
-        ("transaction_id" = String, Query, description = "Transaction id of crypto")
+        ("transaction_id" = String, Query, description = "Transaction ID")
     ),
     responses(
-        (status = 200, description = "Response the buy transaction of crypto"),
+        (status = 200, description = "Returns the details of a specific buy transaction."),
+        (status = 404, description = "Transaction not found."),
+        (status = 500, description = "Failed to fetch transaction details from Moonpay."),
     )
 )]
 #[get("/buy/info")]
@@ -155,17 +161,17 @@ pub async fn get_buy_information(query: web::Query<BuyInfoQuery>) -> impl Respon
                 match response.json::<serde_json::Value>().await {
                     Ok(json) => HttpResponse::Ok().json(json),
                     Err(_) => HttpResponse::InternalServerError()
-                        .json(serde_json::json!({ "error": "Failed to parse response" })),
+                        .json(serde_json::json!({ "error": "failed to parse response" })),
                 }
             } else {
                 let status_code: reqwest::StatusCode = response.status();
                 let error_body = match response.text().await {
                     Ok(body) => body,
-                    Err(_) => "Failed to read error response body".to_string(),
+                    Err(_) => "failed to read error response body".to_string(),
                 };
 
                 HttpResponse::BadRequest().json(serde_json::json!({
-                    "error": "Failed to fetch buy info",
+                    "error": "failed to fetch buy info",
                     "status": status_code.as_u16(),
                     "details": error_body,
                 }))
@@ -187,11 +193,13 @@ struct SwapInfo {
 #[utoipa::path(
     path = "/transaction/swap/info",
     params(
-        ("moonpay_token" = String, Query, description = "Auth token - moonpay"),
-        ("transaction_id" = String, Query, description = "Transaction id of swap"),
+        ("moonpay_token" = String, Query, description = "Moonpay Token"),
+        ("transaction_id" = String, Query, description = "Transaction ID"),
     ),
     responses(
-        (status = 200, description = "Handles buy quote queries"),
+        (status = 200, description = "Returns details of a swap transaction"),
+        (status = 404, description = "Swap transaction not found"),
+        (status = 500, description = "Failed to fetch swap transaction details from Moonpay"),
     )
 )]
 #[get("/swap/info")]
@@ -216,24 +224,24 @@ pub async fn get_swap_transaction(query: web::Query<SwapInfo>) -> impl Responder
                 match response.json::<serde_json::Value>().await {
                     Ok(json) => HttpResponse::Ok().json(json),
                     Err(_) => HttpResponse::InternalServerError()
-                        .json(serde_json::json!({ "error": "Failed to parse response" })),
+                        .json(serde_json::json!({ "error": "failed to parse response" })),
                 }
             } else {
                 let status_code: reqwest::StatusCode = response.status();
                 let error_body = match response.text().await {
                     Ok(body) => body,
-                    Err(_) => "Failed to read error response body".to_string(),
+                    Err(_) => "failed to read error response body".to_string(),
                 };
 
                 HttpResponse::BadRequest().json(serde_json::json!({
-                    "error": "Failed to fetch buy quote info",
+                    "error": "failed to fetch buy quote info",
                     "status": status_code.as_u16(),
                     "details": error_body,
                 }))
             }
         }
         Err(error) => HttpResponse::InternalServerError().json(serde_json::json!({
-            "error": "Request error",
+            "error": "request error",
             "details": error.to_string(),
         })),
     }

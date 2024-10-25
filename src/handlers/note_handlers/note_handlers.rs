@@ -17,6 +17,7 @@ use actix_web::{
 };
 use chrono::{NaiveDateTime, Utc};
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 
 #[derive(Deserialize)]
 pub struct NoteQuery {
@@ -37,22 +38,22 @@ struct NotesResponse {
 }
 
 #[utoipa::path(
-    path = "/admin/api/notes",
+    path = "/admin/dashboard/notes",
     params(
-        ("search" = Option<String>, Query, description = "Search term for filtering notes"),
-        ("sort_field" = Option<String>, Query, description = "Field to sort by (e.g., title, content)"),
-        ("sort_order" = Option<String>, Query, description = "Order to sort (asc or desc)"),
-        ("page" = Option<i64>, Query, description = "Page number for pagination"),
-        ("limit" = Option<i64>, Query, description = "Limit of notes per page"),
-        ("active_status" = Option<String>, Query, description = "Filter by active status (active/inactive)")
+        ("search" = Option<String>, Query, description = "Search term for filtering notes."),
+        ("sort_field" = Option<String>, Query, description = "Field to sort by (example: title or content)."),
+        ("sort_order" = Option<String>, Query, description = "Order to sort by (example: asc or desc)."),
+        ("page" = Option<i64>, Query, description = "Page number for pagination (default: 1)."),
+        ("limit" = Option<i64>, Query, description = "Limit of notes per page (default: 10)."),
+        ("active_status" = Option<String>, Query, description = "Filter by active status (example: active or inactive)."),
     ),
     responses(
-        (status = 200, description = "Get all notes"),
-        (status = 404, description = "No notes found"),
-        (status = 500, description = "Unable to retrieve notes"),
+        (status = 200, description = "Successfully retrieved all notes."),
+        (status = 404, description = "No notes found matching the query."),
+        (status = 500, description = "Internal server error: Unable to retrieve notes."),
     ),
     security(
-        ("bearer_auth" = [])
+        ("bearer_auth" = []),
     )
 )]
 #[get("/notes")]
@@ -85,31 +86,31 @@ pub async fn fetch_notes(state: Data<AppState>, query: Query<NoteQuery>) -> impl
             })
         }
         Ok(Err(_)) => {
-            HttpResponse::NotFound().json(serde_json::json!({ "message": "No notes found" }))
+            HttpResponse::NotFound().json(serde_json::json!({ "message": "no notes found" }))
         }
         _ => HttpResponse::InternalServerError()
-            .json(serde_json::json!({ "message": "Unable to retrieve notes" })),
+            .json(serde_json::json!({ "message": "unable to retrieve notes" })),
     }
 }
 
 #[utoipa::path(
-    path = "/secure/api/user/notes",
+    path = "/api/my/notes",
     responses(
-        (status = 200, description = "Get my notes"),
-        (status = 401, description = "Bearer auth required"),
-        (status = 500, description = "Failed to create note"),
+        (status = 200, description = "Successfully retrieved all notes for the authenticated user."),
+        (status = 401, description = "Unauthorized: Bearer authentication required."),
+        (status = 500, description = "Internal server error: Unable to retrieve user's notes."),
     ),
     security(
         ("bearer_auth" = [])
     )
 )]
-#[get("/user/notes")]
+#[get("/my/notes")]
 pub async fn fetch_user_notes(state: Data<AppState>, req: HttpRequest) -> impl Responder {
     let claims: Claims = match req.extensions().get::<Claims>() {
         Some(claims) => claims.clone(),
         None => {
             return HttpResponse::Unauthorized()
-                .json(serde_json::json!({ "message": "Unauthorized access" }));
+                .json(serde_json::json!({ "message": "unauthorized access" }));
         }
     };
 
@@ -118,42 +119,46 @@ pub async fn fetch_user_notes(state: Data<AppState>, req: HttpRequest) -> impl R
     match db.send(FetchUserNotes { user_id: claims.id }).await {
         Ok(Ok(notes)) => HttpResponse::Ok().json(notes),
         Ok(Err(_)) => HttpResponse::NotFound()
-            .json(serde_json::json!({ "message": format!("No notes for user {}", claims.id) })),
+            .json(serde_json::json!({ "message": format!("no notes for user {}", claims.id) })),
         _ => HttpResponse::InternalServerError()
-            .json(serde_json::json!({ "message": "Unable to retrieve user notes" })),
+            .json(serde_json::json!({ "message": "unable to retrieve user notes" })),
     }
 }
 
-#[derive(Debug, MultipartForm)]
-pub struct CreateNoteBody {
+#[derive(Debug, MultipartForm, ToSchema)]
+pub struct CreateNoteRequest {
+    #[schema(example = "my note title", value_type = String)]
     title: Text<String>,
+    #[schema(example = "my note content", value_type = String)]
     content: Text<String>,
+    #[schema(example = "image.jpg/png", value_type = Option<String>, format = Binary)]
+    #[multipart(limit = "10 MiB")]
     image: Option<TempFile>,
 }
 
 #[utoipa::path(
-    path = "/secure/api/user/note",
-    request_body = CreateNoteBody,
+    path = "/api/create/note",
+    request_body(content = CreateNoteRequest, content_type = "multipart/form-data"),
     responses(
-        (status = 200, description = "Create a new user", body = CreateNote),
-        (status = 401, description = "Bearer auth required"),
-        (status = 500, description = "Failed to create note"),
+        (status = 200, description = "Successfully created a new note."),
+        (status = 401, description = "Unauthorized: Bearer authentication required."),
+        (status = 500, description = "Internal server error: Failed to create note."),
     ),
     security(
         ("bearer_auth" = [])
     )
 )]
-#[post("/user/note")]
+#[post("/create/note")]
 pub async fn create_user_notes(
     state: Data<AppState>,
     req: HttpRequest,
-    body: MultipartForm<CreateNoteBody>,
+    body: MultipartForm<CreateNoteRequest>,
 ) -> impl Responder {
     let claims: Claims = match req.extensions().get::<Claims>() {
         Some(claims) => claims.clone(),
         None => {
             return HttpResponse::Unauthorized()
-                .json(serde_json::json!({"message": "Unauthorized access"}));
+                .json(serde_json::json!({"message": "unauthorized access"}));
         }
     };
 
@@ -174,16 +179,15 @@ pub async fn create_user_notes(
         let cloud_name: String = (*utils::constants::CLOUDINARY_CLOUD_NAME).clone();
         let upload_preset: String = (*utils::constants::CLOUDINARY_UPLOAD_PRESET).clone();
 
-        let image_url =
+        let image_url: Option<String> =
             match upload_image_to_cloudinary(temp_file_path, cloud_name, upload_preset).await {
                 Ok(url) => {
                     std::fs::remove_file(temp_file_path).unwrap_or_default();
                     Some(url)
                 }
-                Err(e) => {
-                    println!("Error uploading image: {}", e);
+                Err(_) => {
                     return HttpResponse::InternalServerError()
-                        .json(serde_json::json!({"message": "Failed to upload image"}));
+                        .json(serde_json::json!({"message": "failed to upload image"}));
                 }
             };
 
@@ -201,7 +205,7 @@ pub async fn create_user_notes(
             Ok(Ok(note)) => return HttpResponse::Ok().json(note),
             _ => {
                 return HttpResponse::InternalServerError()
-                    .json(serde_json::json!({ "message": "Failed to create note" }))
+                    .json(serde_json::json!({ "message": "failed to create note" }))
             }
         }
     } else {
@@ -219,38 +223,44 @@ pub async fn create_user_notes(
             Ok(Ok(note)) => return HttpResponse::Ok().json(note),
             _ => {
                 return HttpResponse::InternalServerError()
-                    .json(serde_json::json!({ "message": "Failed to create note" }))
+                    .json(serde_json::json!({ "message": "failed to create note" }))
             }
         }
     }
 }
 
-#[derive(Debug, MultipartForm)]
-pub struct UpdateNoteBody {
+#[derive(Debug, MultipartForm, ToSchema)]
+pub struct UpdateNoteRequest {
+    #[schema(example = "my note title", value_type = Option<String>)]
     pub title: Option<Text<String>>,
+    #[schema(example = "my note content", value_type = Option<String>)]
     pub content: Option<Text<String>>,
+    #[schema(example = "false", value_type = Option<bool>)]
     pub active: Option<Text<bool>>,
+    #[schema(example = "image.jpg/png", value_type = Option<String>, format = Binary)]
+    #[multipart(limit = "10 MiB")]
     pub image: Option<TempFile>,
 }
 
 #[utoipa::path(
-    path = "/secure/api/user/note/update/{note_id}",
-    request_body = UpdateNoteBody,
+    path = "/api/update/note/{note_id}",
+    request_body(content = UpdateNoteRequest, content_type = "multipart/form-data"),
     responses(
-        (status = 200, description = "Update successful"),
-        (status = 401, description = "Bearer auth required"),
-        (status = 500, description = "Failed to update note"),
+        (status = 200, description = "Note successfully updated."),
+        (status = 401, description = "Unauthorized: Bearer authentication required."),
+        (status = 404, description = "Note not found."),
+        (status = 500, description = "Internal server error: Failed to update note."),
     ),
     security(
         ("bearer_auth" = [])
     )
 )]
-#[patch("/user/note/update/{note_id}")]
+#[patch("/update/note/{note_id}")]
 pub async fn update_user_note(
     state: Data<AppState>,
     req: HttpRequest,
     path: Path<i32>,
-    body: MultipartForm<UpdateNoteBody>,
+    body: MultipartForm<UpdateNoteRequest>,
 ) -> impl Responder {
     let note_id: i32 = path.into_inner();
 
@@ -258,7 +268,7 @@ pub async fn update_user_note(
         Some(claims) => claims.clone(),
         None => {
             return HttpResponse::Unauthorized()
-                .json(serde_json::json!({ "message": "Unauthorized access" }));
+                .json(serde_json::json!({ "message": "unauthorized access" }));
         }
     };
 
@@ -305,10 +315,9 @@ pub async fn update_user_note(
                     std::fs::remove_file(temp_file_path).unwrap_or_default();
                     updated_image_url = Some(url);
                 }
-                Err(e) => {
-                    println!("Error uploading image: {}", e);
+                Err(_) => {
                     return HttpResponse::InternalServerError()
-                        .json(serde_json::json!({ "message": "Failed to upload image" }));
+                        .json(serde_json::json!({ "message": "failed to upload image" }));
                 }
             };
         }
@@ -329,28 +338,29 @@ pub async fn update_user_note(
         {
             Ok(Ok(updated_note)) => HttpResponse::Ok().json(updated_note),
             Ok(Err(_)) => HttpResponse::NotFound()
-                .json(serde_json::json!({ "message": format!("Note {note_id} not found") })),
+                .json(serde_json::json!({ "message": format!("note {note_id} not found") })),
             _ => HttpResponse::InternalServerError()
-                .json(serde_json::json!({ "message": "Failed to update note" })),
+                .json(serde_json::json!({ "message": "failed to update note" })),
         }
     } else {
         HttpResponse::NotFound()
-            .json(serde_json::json!({ "message": format!("Note {note_id} not found") }))
+            .json(serde_json::json!({ "message": format!("note {note_id} not found") }))
     }
 }
 
 #[utoipa::path(
-    path = "/secure/api/user/note/delete/{note_id}",
+    path = "/api/delete/note/{note_id}",
     responses(
-        (status = 200, description = "Delete note successful"),
-        (status = 401, description = "Bearer auth required"),
-        (status = 500, description = "Failed to delete note"),
+        (status = 200, description = "Note successfully deleted."),
+        (status = 401, description = "Unauthorized: Bearer authentication required."),
+        (status = 404, description = "Note not found."),
+        (status = 500, description = "Internal server error: Failed to delete note."),
     ),
     security(
         ("bearer_auth" = [])
     )
 )]
-#[delete("/user/note/delete/{note_id}")]
+#[delete("/delete/note/{note_id}")]
 pub async fn delete_user_note(
     state: Data<AppState>,
     req: HttpRequest,
@@ -362,7 +372,7 @@ pub async fn delete_user_note(
         Some(claims) => claims.clone(),
         None => {
             return HttpResponse::Unauthorized()
-                .json(serde_json::json!({ "message": "Unauthorized access" }));
+                .json(serde_json::json!({ "message": "unauthorized access" }));
         }
     };
 
@@ -377,14 +387,14 @@ pub async fn delete_user_note(
     if let Some(_) = existing_note {
         match db.send(DeleteNote { note_id }).await {
             Ok(Ok(rows_affected)) if rows_affected > 0 => HttpResponse::Ok()
-                .json(serde_json::json!({ "message": format!("Deleted note {}", note_id) })),
+                .json(serde_json::json!({ "message": format!("deleted note {}", note_id) })),
             Ok(_) => HttpResponse::NotFound()
-                .json(serde_json::json!({ "message": format!("Note {} not found", note_id) })),
+                .json(serde_json::json!({ "message": format!("note {} not found", note_id) })),
             _ => HttpResponse::InternalServerError()
-                .json(serde_json::json!({ "message": "Failed to delete note" })),
+                .json(serde_json::json!({ "message": "failed to delete note" })),
         }
     } else {
         HttpResponse::NotFound()
-            .json(serde_json::json!({ "message": format!("Note {} not found", note_id) }))
+            .json(serde_json::json!({ "message": format!("note {} not found", note_id) }))
     }
 }

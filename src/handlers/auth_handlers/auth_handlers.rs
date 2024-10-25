@@ -13,32 +13,39 @@ use actix_web::{
     web::{Data, Json},
     HttpResponse, Responder,
 };
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
+use utoipa::ToSchema;
 
-#[derive(Deserialize)]
-pub struct CreateUserBody {
+#[derive(Deserialize, ToSchema)]
+pub struct RegisterUserRequest {
+    #[schema(example = "random", required = true)]
     pub username: String,
+    #[schema(example = "random@gmail.com", required = true)]
     pub email: String,
+    #[schema(example = "random", format = "password", required = true)]
     pub password: String,
 }
 
 #[utoipa::path(
     path = "/user/register",
-    request_body = CreateUserBody,
+    request_body = RegisterUserRequest,
     responses(
-        (status = 200, description = "Create a new user", body = CreateUser),
-        (status = 500, description = "Unable to create user"),
+        (status = 200, description = "Successfully registered a new user."),
+        (status = 500, description = "Failed to register the user due to an internal error."),
     )
 )]
 #[post("/register")]
-pub async fn register_user(state: Data<AppState>, body: Json<CreateUserBody>) -> impl Responder {
+pub async fn register_user(
+    state: Data<AppState>,
+    body: Json<RegisterUserRequest>,
+) -> impl Responder {
     let db: Addr<DbActor> = state.as_ref().db.clone();
 
     let hashed_password: String = match bcrypt::hash(&body.password, bcrypt::DEFAULT_COST) {
         Ok(hash) => hash,
         Err(_) => {
             return HttpResponse::InternalServerError()
-                .json(serde_json::json!({ "message": "Password hashing failed" }))
+                .json(serde_json::json!({ "message": "password hashing failed" }))
         }
     };
 
@@ -52,38 +59,34 @@ pub async fn register_user(state: Data<AppState>, body: Json<CreateUserBody>) ->
     {
         Ok(Ok(user)) => HttpResponse::Ok().json(user),
         Ok(Err(_)) => HttpResponse::InternalServerError()
-            .json(serde_json::json!({ "message": "Failed to create user" })),
+            .json(serde_json::json!({ "message": "failed to create user" })),
         _ => HttpResponse::InternalServerError()
-            .json(serde_json::json!({ "message": "Unable to create user" })),
+            .json(serde_json::json!({ "message": "unable to create user" })),
     }
 }
 
-#[derive(Deserialize)]
-pub struct LoginUserBody {
+#[derive(Deserialize, ToSchema)]
+pub struct LoginUserRequest {
+    #[schema(example = "random@gmail.com", required = true)]
     pub email: String,
+    #[schema(example = "random", format = "password", required = true)]
     pub password: String,
-}
-
-#[derive(Serialize)]
-pub struct LoginUserResponse {
-    pub email: String,
-    pub username: String,
 }
 
 #[utoipa::path(
     path = "/user/login",
-    request_body = LoginUserBody,
+    request_body = LoginUserRequest,
     responses(
-        (status = 200, description = "Login using credentials, returns bearer token", body = LoginAndGetUser),
-        (status = 401, description = "Basic auth required"),
-        (status = 500, description = "Internal server error"),
+        (status = 200, description = "Successfully logged in. Returns a bearer token along with user information"),
+        (status = 401, description = "Unauthorized: Invalid email or password."),
+        (status = 500, description = "Internal Server Error: Unable to process the login request."),
     ),
     security(
         ("basic_auth" = [])
     )
 )]
 #[post("/login")]
-pub async fn login_user(state: Data<AppState>, body: Json<LoginUserBody>) -> impl Responder {
+pub async fn login_user(state: Data<AppState>, body: Json<LoginUserRequest>) -> impl Responder {
     let db: Addr<DbActor> = state.as_ref().db.clone();
 
     match db
@@ -102,43 +105,39 @@ pub async fn login_user(state: Data<AppState>, body: Json<LoginUserBody>) -> imp
                         let oneday: OffsetDateTime = OffsetDateTime::now_utc() + Duration::days(1);
 
                         let cookie = Cookie::build("token", token.clone())
-                        .path("/")
-                        .http_only(true)
-                        .secure(false)
-                        .expires(oneday)
-                        .finish();
+                            .path("/")
+                            .http_only(true)
+                            .secure(false)
+                            .expires(oneday)
+                            .finish();
 
                         HttpResponse::Ok().cookie(cookie).json(serde_json::json!({
-                        "token": token,
-                        "user": LoginUserResponse {
-                            email: user.email,
-                            username: user.username,
-                        }
-                    }))},
-                    Err(e) => HttpResponse::InternalServerError().json(
-                        serde_json::json!({ "message": format!("Failed to generate token: {}", e) }),
-                    ),
+                            "token": token,
+                            "user": {
+                                "email": user.email,
+                                "username": user.username,
+                            }
+                        }))
+                    }
+                    Err(_) => HttpResponse::InternalServerError()
+                        .json(serde_json::json!({ "message": "failed to generate token" })),
                 }
             } else {
                 HttpResponse::Unauthorized()
-                    .json(serde_json::json!({ "message": "Invalid email or password" }))
+                    .json(serde_json::json!({ "message": "invalid credentials" }))
             }
         }
         Ok(Err(_)) => HttpResponse::Unauthorized()
-            .json(serde_json::json!({ "message": "Invalid email or password" })),
+            .json(serde_json::json!({ "message": "invalid email or password" })),
         _ => HttpResponse::InternalServerError()
-            .json(serde_json::json!({ "message": "Unable to login user" })),
+            .json(serde_json::json!({ "message": "unable to login user" })),
     }
 }
 
 #[utoipa::path(
     path = "/user/logout",
     responses(
-        (status = 200, description = "User logout"),
-        (status = 500, description = "Unable to logout user"),
-    ),
-    security(
-        ("bearer_auth" = [])
+        (status = 200, description = "Successfully logged out. The user's session has been terminated."),
     )
 )]
 #[get("/logout")]
@@ -154,5 +153,5 @@ pub async fn logout_user() -> impl Responder {
 
     HttpResponse::Ok()
         .cookie(cookie)
-        .json(serde_json::json!({ "status": "success", "message": "Successfully logged out" }))
+        .json(serde_json::json!({ "message": "user logged out" }))
 }

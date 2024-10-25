@@ -15,7 +15,7 @@ pub async fn check_auth_middleware(
 ) -> Result<ServiceResponse<impl MessageBody>, Error> {
     if !req.cookie("token").is_some() {
         return Err(ErrorUnauthorized(
-            serde_json::json!({ "message": "Token is not available in the cookie" }),
+            serde_json::json!({ "message": "token is not available in the cookie" }),
         ));
     }
 
@@ -23,7 +23,7 @@ pub async fn check_auth_middleware(
 
     if auth.is_none() {
         return Err(ErrorUnauthorized(
-            serde_json::json!({ "message": "Provide an authentication token in the request" }),
+            serde_json::json!({ "message": "provide an authentication token in the request" }),
         ));
     };
 
@@ -39,17 +39,17 @@ pub async fn check_auth_middleware(
         Err(err) => match err.kind() {
             ErrorKind::ExpiredSignature => {
                 return Err(ErrorUnauthorized(
-                    serde_json::json!({ "message": "Token has expired" }),
+                    serde_json::json!({ "message": "token has expired" }),
                 ));
             }
             ErrorKind::InvalidSignature => {
                 return Err(ErrorUnauthorized(
-                    serde_json::json!({ "message": "Invalid token signature" }),
+                    serde_json::json!({ "message": "invalid token signature" }),
                 ));
             }
             _ => {
                 return Err(ErrorUnauthorized(
-                    serde_json::json!({ "message": "Invalid token", "details": err.to_string() }),
+                    serde_json::json!({ "message": "invalid token", "details": err.to_string() }),
                 ));
             }
         },
@@ -59,7 +59,7 @@ pub async fn check_auth_middleware(
 
     next.call(req).await.map_err(|err| {
         ErrorInternalServerError(
-            serde_json::json!({ "message": "Internal server error", "details": err.to_string() })
+            serde_json::json!({ "message": "internal server error", "details": err.to_string() })
                 .to_string(),
         )
     })
@@ -72,7 +72,7 @@ async fn check_auth_permissions(
 ) -> Result<ServiceResponse<impl MessageBody>, Error> {
     if !req.cookie("token").is_some() {
         return Err(ErrorUnauthorized(
-            serde_json::json!({ "message": "Token is not available in the cookie" }),
+            serde_json::json!({ "message": "token is not available in the cookie" }),
         ));
     }
 
@@ -80,7 +80,7 @@ async fn check_auth_permissions(
 
     if auth.is_none() {
         return Err(ErrorUnauthorized(
-            serde_json::json!({ "message": "Provide an authentication token" }),
+            serde_json::json!({ "message": "provide an authentication token" }),
         ));
     };
 
@@ -96,17 +96,17 @@ async fn check_auth_permissions(
         Err(e) => match e.kind() {
             ErrorKind::ExpiredSignature => {
                 return Err(ErrorUnauthorized(
-                    serde_json::json!({ "message": "Token has expired" }),
+                    serde_json::json!({ "message": "token has expired" }),
                 ));
             }
             ErrorKind::InvalidSignature => {
                 return Err(ErrorUnauthorized(
-                    serde_json::json!({ "message": "Invalid token signature" }),
+                    serde_json::json!({ "message": "invalid token signature" }),
                 ));
             }
             _ => {
                 return Err(ErrorUnauthorized(
-                    serde_json::json!({ "message": "Invalid token", "details": e.to_string() }),
+                    serde_json::json!({ "message": "invalid token", "details": e.to_string() }),
                 ));
             }
         },
@@ -116,13 +116,13 @@ async fn check_auth_permissions(
 
     if !allowed_roles.contains(&user_role) {
         return Err(ErrorForbidden(
-            serde_json::json!({ "message": "Unauthorized to access this route" }),
+            serde_json::json!({ "message": "unauthorized to access this route" }),
         ));
     }
 
     next.call(req).await.map_err(|err| {
         ErrorInternalServerError(
-            serde_json::json!({ "message": "Internal server error", "details": err.to_string() })
+            serde_json::json!({ "message": "internal server error", "details": err.to_string() })
                 .to_string(),
         )
     })

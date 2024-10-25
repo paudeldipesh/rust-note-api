@@ -1,3 +1,10 @@
+use crate::{
+    utils::{
+        db::{AppState, DbActor},
+        jwt::Claims,
+    },
+    LoginAndGetUser, OTPMessage,
+};
 use actix::Addr;
 use actix_web::{
     get, post,
@@ -7,20 +14,14 @@ use actix_web::{
 use rand::{rngs::ThreadRng, Rng};
 use serde::{Deserialize, Serialize};
 use totp_rs::{Algorithm, Secret, TOTP};
-
-use crate::{
-    utils::{
-        db::{AppState, DbActor},
-        jwt::Claims,
-    },
-    LoginAndGetUser, OTPMessage,
-};
+use utoipa::ToSchema;
 
 #[utoipa::path(
     path = "/auth/otp/generate",
     responses(
-        (status = 200, description = "OTP generated"),
-        (status = 500, description = "failed to generate OTP"),
+        (status = 200, description = "OTP successfully generated."),
+        (status = 500, description = "Failed to generate the OTP."),
+        (status = 401, description = "Unauthorized access if the JWT token is missing or invalid."),
     ),
     security(
         ("bearer_auth" = [])
@@ -32,7 +33,7 @@ pub async fn generate_otp_handler(state: Data<AppState>, req: HttpRequest) -> im
         Some(claims) => claims.clone(),
         None => {
             return HttpResponse::Unauthorized()
-                .json(serde_json::json!({"message": "Unauthorized access"}));
+                .json(serde_json::json!({"message": "unauthorized access"}));
         }
     };
 
@@ -54,7 +55,7 @@ pub async fn generate_otp_handler(state: Data<AppState>, req: HttpRequest) -> im
 
     let otp_base32: String = totp.get_secret_base32();
     let email: String = claims.email;
-    let issuer: &str = "NoteAPI";
+    let issuer: &str = "RustNoteAPI";
     let otp_auth_url: String =
         format!("otpauth://totp/{issuer}:{email}?secret={otp_base32}&issuer={issuer}");
 
@@ -77,12 +78,13 @@ pub async fn generate_otp_handler(state: Data<AppState>, req: HttpRequest) -> im
             "otp_base32": otp_base32,
         })),
         _ => HttpResponse::InternalServerError()
-            .json(serde_json::json!({ "message": "Failed to generate OTP" })),
+            .json(serde_json::json!({ "message": "failed to generate otp" })),
     }
 }
 
-#[derive(Deserialize)]
-pub struct VerifyOTPBody {
+#[derive(Deserialize, ToSchema)]
+pub struct VerifyOTPRequest {
+    #[schema(example = "123456")]
     pub otp_token: String,
 }
 
@@ -93,10 +95,12 @@ pub struct GenericResponse {
 }
 #[utoipa::path(
     path = "/auth/otp/verify",
-    request_body = VerifyOTPBody,
+    request_body = VerifyOTPRequest,
     responses(
-        (status = 200, description = "OTP verified"),
-        (status = 500, description = "failed to verify OTP"),
+        (status = 200, description = "OTP successfully verified, returns updated user details with OTP verification status"),
+        (status = 403, description = "Invalid OTP token."),
+        (status = 500, description = "Failed to verify OTP or update OTP status."),
+        (status = 401, description = "Unauthorized access, JWT token is missing or invalid."),
     ),
     security(
         ("bearer_auth" = [])
@@ -106,7 +110,7 @@ pub struct GenericResponse {
 pub async fn verify_otp_handler(
     state: Data<AppState>,
     req: HttpRequest,
-    body: Json<VerifyOTPBody>,
+    body: Json<VerifyOTPRequest>,
 ) -> impl Responder {
     let claims: Claims = match req.extensions().get::<Claims>() {
         Some(claims) => claims.clone(),
@@ -169,7 +173,7 @@ pub async fn verify_otp_handler(
                 })),
                 _ => HttpResponse::InternalServerError().json(GenericResponse {
                     status: String::from("fail"),
-                    message: String::from("failed to update OTP status"),
+                    message: String::from("failed to update otp status"),
                 }),
             }
         }
@@ -184,16 +188,19 @@ pub async fn verify_otp_handler(
     }
 }
 
-#[derive(Deserialize)]
-pub struct ValidateOTPBody {
+#[derive(Deserialize, ToSchema)]
+pub struct ValidateOTPRequest {
+    #[schema(example = "123456")]
     pub otp_token: String,
 }
 #[utoipa::path(
     path = "/auth/otp/validate",
-    request_body = ValidateOTPBody,
+    request_body = ValidateOTPRequest,
     responses(
-        (status = 200, description = "OTP validated"),
-        (status = 500, description = "failed to validate OTP"),
+        (status = 200, description = "OTP successfully validated, returns the user details if OTP is valid."),
+        (status = 403, description = "OTP not validated or invalid OTP token."),
+        (status = 500, description = "Failed to validate OTP or retrieve user."),
+        (status = 401, description = "Unauthorized access, JWT token is missing or invalid."),
     ),
     security(
         ("bearer_auth" = [])
@@ -203,7 +210,7 @@ pub struct ValidateOTPBody {
 pub async fn token_validate_handler(
     state: Data<AppState>,
     req: HttpRequest,
-    body: Json<ValidateOTPBody>,
+    body: Json<ValidateOTPRequest>,
 ) -> impl Responder {
     let claims: Claims = match req.extensions().get::<Claims>() {
         Some(claims) => claims.clone(),
@@ -231,7 +238,7 @@ pub async fn token_validate_handler(
             if !user.opt_verified.unwrap_or(false) {
                 return HttpResponse::Forbidden().json(GenericResponse {
                     status: String::from("fail"),
-                    message: String::from("OTP not validated"),
+                    message: String::from("otp not validated"),
                 });
             }
 
@@ -250,7 +257,7 @@ pub async fn token_validate_handler(
             if !is_valid {
                 return HttpResponse::Forbidden().json(GenericResponse {
                     status: String::from("fail"),
-                    message: String::from("invalid OTP token"),
+                    message: String::from("invalid otp token"),
                 });
             }
 
@@ -270,8 +277,9 @@ pub async fn token_validate_handler(
 #[utoipa::path(
     path = "/auth/otp/disable",
     responses(
-        (status = 200, description = "OTP disabled"),
-        (status = 500, description = "failed to disable OTP"),
+        (status = 200, description = "OTP successfully disabled, returns confirmation."),
+        (status = 500, description = "Failed to disable OTP."),
+        (status = 401, description = "Unauthorized access, JWT token is missing or invalid."),
     ),
     security(
         ("bearer_auth" = [])
@@ -283,7 +291,7 @@ pub async fn disable_otp_handler(state: Data<AppState>, req: HttpRequest) -> imp
         Some(claims) => claims.clone(),
         None => {
             return HttpResponse::Unauthorized()
-                .json(serde_json::json!({"message": "Unauthorized access"}));
+                .json(serde_json::json!({"message": "unauthorized access"}));
         }
     };
 
@@ -304,6 +312,6 @@ pub async fn disable_otp_handler(state: Data<AppState>, req: HttpRequest) -> imp
             "data": data,
         })),
         _ => HttpResponse::InternalServerError()
-            .json(serde_json::json!({ "message": "Failed to disable OTP" })),
+            .json(serde_json::json!({ "message": "failed to disable otp" })),
     }
 }

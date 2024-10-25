@@ -1,34 +1,54 @@
-use actix_web::{get, web, Responder};
+use actix_web::{get, web::Path, HttpResponse, Responder};
+use serde::Serialize;
+
+#[derive(Serialize)]
+struct MessageResponse {
+    message: String,
+}
 
 #[utoipa::path(
     path = "/",
     responses(
-        (status = 200, description = "Display 'Welcome to Actix Web!' message"),
+        (status = 200, description = "JSON welcome message response"),
     ),
 )]
 #[get("/")]
 pub async fn home() -> impl Responder {
-    "Welcome to Actix Web!"
+    let response: MessageResponse = MessageResponse {
+        message: String::from("welcome to rust not api"),
+    };
+
+    HttpResponse::Ok().json(response)
 }
 
 #[utoipa::path(
-    path = "/test/hello-world",
+    path = "/hello/world",
     responses(
-        (status = 200, description = "Display 'Hello, World!' message"),
+        (status = 200, description = "JSON hello world message response"),
     ),
 )]
 #[get("/hello-world")]
 pub async fn index() -> impl Responder {
-    "Hello, World!"
+    let response: MessageResponse = MessageResponse {
+        message: String::from("hello world"),
+    };
+
+    HttpResponse::Ok().json(response)
 }
 
 #[utoipa::path(
-    path = "/test/{name}",
+    path = "/hello/{name}",
     responses(
-        (status = 200, description = "Display 'Hello {name}!' message"),
+        (status = 200, description = "JSON hello user message response"),
     ),
 )]
 #[get("/{name}")]
-pub async fn hello(name: web::Path<String>) -> impl Responder {
-    format!("Hello {}!", &name)
+pub async fn hello(name: Path<String>) -> impl Responder {
+    let incomming_name: String = name.into_inner();
+
+    let response: MessageResponse = MessageResponse {
+        message: format!("hello {}", incomming_name),
+    };
+
+    HttpResponse::Ok().json(response)
 }

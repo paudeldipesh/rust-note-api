@@ -4,5 +4,5 @@ use actix_web::web;
 pub fn configuration(configure: &mut web::ServiceConfig) {
     configure
         .service(home)
-        .service(web::scope("/test").service(index).service(hello));
+        .service(web::scope("/hello").service(index).service(hello));
 }

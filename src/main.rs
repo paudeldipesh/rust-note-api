@@ -19,8 +19,8 @@ use handlers::{
     transaction_handlers::transaction_handlers::*,
 };
 use routes::{
-    auth_routes::auth_routes, note_routes::note_routes, test_routes::test_routes,
-    transaction_routes::transaction_routes,
+    admin_routes::admin_routes, auth_routes::auth_routes, note_routes::note_routes,
+    test_routes::test_routes, transaction_routes::transaction_routes,
 };
 mod schema;
 mod utils;
@@ -72,6 +72,12 @@ async fn main() -> std::io::Result<()> {
     components(
         schemas(
             Claims,
+            RegisterUserRequest,
+            LoginUserRequest,
+            CreateNoteRequest,
+            UpdateNoteRequest,
+            VerifyOTPRequest,
+            ValidateOTPRequest,
         )
     ),
     modifiers(&SecurityAddon)
@@ -115,6 +121,7 @@ async fn main() -> std::io::Result<()> {
             .configure(note_routes::configuration)
             .configure(auth_routes::configuration)
             .configure(transaction_routes::configuration)
+            .configure(admin_routes::configuration)
     })
     .bind((address, port))?
     .run()

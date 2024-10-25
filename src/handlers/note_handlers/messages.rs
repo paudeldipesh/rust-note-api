@@ -1,23 +1,8 @@
+use super::utils::ActiveStatus;
 use crate::models::Note;
 use actix::Message;
 use chrono::NaiveDateTime;
 use diesel::QueryResult;
-use serde::Deserialize;
-
-#[derive(Debug, Deserialize, Clone, Copy)]
-pub enum ActiveStatus {
-    Active,
-    Inactive,
-}
-
-impl ActiveStatus {
-    pub fn as_bool(self) -> bool {
-        match self {
-            ActiveStatus::Active => true,
-            ActiveStatus::Inactive => false,
-        }
-    }
-}
 
 #[derive(Message)]
 #[rtype(result = "QueryResult<Vec<Note>>")]

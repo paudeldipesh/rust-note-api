@@ -4,6 +4,7 @@ use reqwest::{
     Client,
 };
 use serde::Deserialize;
+
 pub fn upload_image_validation(
     file_name: Option<String>,
     file_size: usize,
@@ -13,23 +14,23 @@ pub fn upload_image_validation(
         Some(name) => {
             if !name.ends_with(".png") && !name.ends_with(".jpg") {
                 return Err(HttpResponse::BadRequest()
-                    .json(serde_json::json!({ "message": "Invalid file type"})));
+                    .json(serde_json::json!({ "message": "invalid file type"})));
             }
         }
         None => {
             return Err(HttpResponse::BadRequest()
-                .json(serde_json::json!({ "message": "File name is missing"})));
+                .json(serde_json::json!({ "message": "file name is missing"})));
         }
     }
 
     match file_size {
         0 => {
             return Err(HttpResponse::BadRequest()
-                .json(serde_json::json!({ "message": "Invalid file size"})));
+                .json(serde_json::json!({ "message": "invalid file size"})));
         }
         length if length > max_file_size as usize => {
             return Err(HttpResponse::BadRequest()
-                .json(serde_json::json!({ "message": "File size too long"})));
+                .json(serde_json::json!({ "message": "file size too long"})));
         }
         _ => {}
     }
@@ -77,4 +78,19 @@ pub async fn upload_image_to_cloudinary(
         .await?;
 
     Ok(response.secure_url)
+}
+
+#[derive(Debug, Deserialize, Clone, Copy)]
+pub enum ActiveStatus {
+    Active,
+    Inactive,
+}
+
+impl ActiveStatus {
+    pub fn as_bool(self) -> bool {
+        match self {
+            ActiveStatus::Active => true,
+            ActiveStatus::Inactive => false,
+        }
+    }
 }
