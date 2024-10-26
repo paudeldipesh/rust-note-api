@@ -14,7 +14,6 @@ serde_json = "1.0.121"
 diesel = { version = "2.2.2", features = ["postgres", "r2d2", "chrono"] }
 jsonwebtoken = "9.3.0"
 actix-web-lab = "0.20.2"
-sanitize-filename = "0.5.0"
 actix-multipart = "0.7.2"
 bcrypt = "0.15.1"
 utoipa = { version = "3.3.0", features = ["actix_extras", "chrono"] }
@@ -23,3 +22,4 @@ totp-rs = "5.6.0"
 base32 = "0.5.1"
 rand = "0.8.5"
 reqwest = { version = "0.12.7", features = ["json", "multipart"] }
+actix-governor = "0.7.0"

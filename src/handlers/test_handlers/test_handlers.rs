@@ -22,7 +22,7 @@ pub async fn home() -> impl Responder {
 }
 
 #[utoipa::path(
-    path = "/hello/world",
+    path = "/hello/hello-world",
     responses(
         (status = 200, description = "JSON hello world message response"),
     ),
@@ -30,7 +30,7 @@ pub async fn home() -> impl Responder {
 #[get("/hello-world")]
 pub async fn index() -> impl Responder {
     let response: MessageResponse = MessageResponse {
-        message: String::from("hello world"),
+        message: String::from("hello world!"),
     };
 
     HttpResponse::Ok().json(response)
@@ -47,7 +47,7 @@ pub async fn hello(name: Path<String>) -> impl Responder {
     let incomming_name: String = name.into_inner();
 
     let response: MessageResponse = MessageResponse {
-        message: format!("hello {}", incomming_name),
+        message: format!("Hello, {}", incomming_name),
     };
 
     HttpResponse::Ok().json(response)

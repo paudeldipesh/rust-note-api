@@ -12,6 +12,7 @@ mod handlers;
 mod middlewares;
 mod models;
 mod routes;
+use actix_governor::{Governor, GovernorConfigBuilder};
 use handlers::{
     auth_handlers::{auth_handlers::*, messages::*, two_fa_handlers::*, user_handlers::*},
     note_handlers::note_handlers::*,
@@ -108,6 +109,12 @@ async fn main() -> std::io::Result<()> {
 
     let open_api: OpenApiType = ApiDoc::openapi();
 
+    let governor_conf = GovernorConfigBuilder::default()
+        .requests_per_minute(7)
+        .burst_size(3)
+        .finish()
+        .unwrap();
+
     HttpServer::new(move || {
         App::new()
             .app_data(Data::new(AppState {
@@ -117,6 +124,7 @@ async fn main() -> std::io::Result<()> {
                 SwaggerUi::new("/swagger-ui/{_:.*}")
                     .url("/api-docs/openapi.json", open_api.clone()),
             )
+            .wrap(Governor::new(&governor_conf))
             .configure(test_routes::configuration)
             .configure(note_routes::configuration)
             .configure(auth_routes::configuration)
