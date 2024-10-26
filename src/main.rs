@@ -110,8 +110,8 @@ async fn main() -> std::io::Result<()> {
     let open_api: OpenApiType = ApiDoc::openapi();
 
     let governor_conf = GovernorConfigBuilder::default()
-        .requests_per_minute(7)
-        .burst_size(3)
+        .requests_per_minute(60)
+        .burst_size(30)
         .finish()
         .unwrap();
 
@@ -120,11 +120,11 @@ async fn main() -> std::io::Result<()> {
             .app_data(Data::new(AppState {
                 db: db_addr.clone(),
             }))
+            .wrap(Governor::new(&governor_conf))
             .service(
                 SwaggerUi::new("/swagger-ui/{_:.*}")
                     .url("/api-docs/openapi.json", open_api.clone()),
             )
-            .wrap(Governor::new(&governor_conf))
             .configure(test_routes::configuration)
             .configure(note_routes::configuration)
             .configure(auth_routes::configuration)
