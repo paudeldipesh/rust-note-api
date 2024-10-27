@@ -14,7 +14,7 @@ pub fn configuration(configure: &mut web::ServiceConfig) {
                 .service(get_swap_transaction),
         )
         .service(
-            web::scope("/fetch")
+            web::scope("/crypto")
                 .wrap(from_fn(check_auth_middleware))
                 .service(get_buy_lists),
         );

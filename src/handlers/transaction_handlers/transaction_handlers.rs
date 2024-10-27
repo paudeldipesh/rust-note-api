@@ -9,7 +9,7 @@ struct BuyListsQuery {
 }
 
 #[utoipa::path(
-    path = "/fetch/buy/lists",
+    path = "/crypto/buy/lists",
     params(
         ("moonpay_token" = String, Query, description = "Moonpay Token"),
     ),
