@@ -26,9 +26,9 @@ pub struct User {
     pub email: String,
     #[serde(skip_serializing)]
     pub password: String,
-    pub opt_verified: Option<bool>,
-    pub opt_enabled: Option<bool>,
-    pub opt_base32: Option<String>,
-    pub opt_auth_url: Option<String>,
+    pub otp_verified: Option<bool>,
+    pub otp_enabled: Option<bool>,
+    pub otp_base32: Option<String>,
+    pub otp_auth_url: Option<String>,
     pub role: String,
 }

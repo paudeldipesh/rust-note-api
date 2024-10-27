@@ -24,12 +24,12 @@ diesel::table! {
         email -> Varchar,
         #[max_length = 80]
         password -> Varchar,
-        opt_verified -> Nullable<Bool>,
-        opt_enabled -> Nullable<Bool>,
+        otp_verified -> Nullable<Bool>,
+        otp_enabled -> Nullable<Bool>,
         #[max_length = 100]
-        opt_base32 -> Nullable<Varchar>,
+        otp_base32 -> Nullable<Varchar>,
         #[max_length = 255]
-        opt_auth_url -> Nullable<Varchar>,
+        otp_auth_url -> Nullable<Varchar>,
         #[max_length = 10]
         role -> Varchar,
     }

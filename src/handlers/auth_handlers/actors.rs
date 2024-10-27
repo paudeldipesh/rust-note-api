@@ -78,10 +78,10 @@ impl Handler<OTPMessage> for DbActor {
 
         diesel::update(users.filter(email.eq(&msg.email)))
             .set(OTPInfoInsertable {
-                opt_verified: msg.opt_verified,
-                opt_enabled: msg.opt_enabled,
-                opt_base32: msg.opt_base32,
-                opt_auth_url: msg.opt_auth_url,
+                otp_verified: msg.otp_verified,
+                otp_enabled: msg.otp_enabled,
+                otp_base32: msg.otp_base32,
+                otp_auth_url: msg.otp_auth_url,
             })
             .get_result::<User>(&mut connection)
     }

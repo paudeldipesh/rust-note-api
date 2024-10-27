@@ -26,8 +26,8 @@ pub struct LoginAndGetUser {
 #[rtype(result = "QueryResult<User>")]
 pub struct OTPMessage {
     pub email: String,
-    pub opt_verified: bool,
-    pub opt_enabled: bool,
-    pub opt_base32: Option<String>,
-    pub opt_auth_url: Option<String>,
+    pub otp_verified: bool,
+    pub otp_enabled: bool,
+    pub otp_base32: Option<String>,
+    pub otp_auth_url: Option<String>,
 }

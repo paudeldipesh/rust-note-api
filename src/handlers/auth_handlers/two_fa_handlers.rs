@@ -59,16 +59,16 @@ pub async fn generate_otp_handler(state: Data<AppState>, req: HttpRequest) -> im
     let otp_auth_url: String =
         format!("otpauth://totp/{issuer}:{email}?secret={otp_base32}&issuer={issuer}");
 
-    let opt_verified: bool = false;
-    let opt_enabled: bool = true;
+    let otp_verified: bool = false;
+    let otp_enabled: bool = true;
 
     match db
         .send(OTPMessage {
             email,
-            opt_verified,
-            opt_enabled,
-            opt_auth_url: Some(otp_auth_url.clone()),
-            opt_base32: Some(otp_base32.clone()),
+            otp_verified,
+            otp_enabled,
+            otp_auth_url: Some(otp_auth_url.clone()),
+            otp_base32: Some(otp_base32.clone()),
         })
         .await
     {
@@ -133,7 +133,7 @@ pub async fn verify_otp_handler(
         .await
     {
         Ok(Ok(user)) => {
-            let otp_base32: String = user.opt_base32.clone().unwrap();
+            let otp_base32: String = user.otp_base32.clone().unwrap();
 
             let totp: TOTP = TOTP::new(
                 Algorithm::SHA1,
@@ -154,16 +154,16 @@ pub async fn verify_otp_handler(
                 return HttpResponse::Forbidden().json(json_error);
             }
 
-            let opt_verified: bool = true;
-            let opt_enabled: bool = true;
+            let otp_verified: bool = true;
+            let otp_enabled: bool = true;
 
             match db
                 .send(OTPMessage {
                     email: user_email,
-                    opt_verified,
-                    opt_enabled,
-                    opt_base32: Some(user.opt_base32.unwrap().clone()),
-                    opt_auth_url: Some(user.opt_auth_url.unwrap().clone()),
+                    otp_verified,
+                    otp_enabled,
+                    otp_base32: Some(user.otp_base32.unwrap().clone()),
+                    otp_auth_url: Some(user.otp_auth_url.unwrap().clone()),
                 })
                 .await
             {
@@ -235,14 +235,14 @@ pub async fn token_validate_handler(
         .await
     {
         Ok(Ok(user)) => {
-            if !user.opt_verified.unwrap_or(false) {
+            if !user.otp_verified.unwrap_or(false) {
                 return HttpResponse::Forbidden().json(GenericResponse {
                     status: String::from("fail"),
                     message: String::from("otp not validated"),
                 });
             }
 
-            let otp_base32: String = user.opt_base32.clone().unwrap();
+            let otp_base32: String = user.otp_base32.clone().unwrap();
             let totp: TOTP = TOTP::new(
                 Algorithm::SHA1,
                 6,
@@ -300,10 +300,10 @@ pub async fn disable_otp_handler(state: Data<AppState>, req: HttpRequest) -> imp
     match db
         .send(OTPMessage {
             email: claims.email,
-            opt_verified: false,
-            opt_enabled: false,
-            opt_auth_url: None,
-            opt_base32: None,
+            otp_verified: false,
+            otp_enabled: false,
+            otp_auth_url: Some(String::new()),
+            otp_base32: Some(String::new()),
         })
         .await
     {

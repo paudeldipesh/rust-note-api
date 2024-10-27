@@ -1,14 +1,15 @@
 -- Your SQL goes here
+-- Your SQL goes here
 CREATE TABLE
   users (
     id SERIAL PRIMARY KEY,
     username VARCHAR(30) NOT NULL UNIQUE,
     email VARCHAR(100) NOT NULL UNIQUE,
     password VARCHAR(80) NOT NULL UNIQUE,
-    opt_verified BOOLEAN DEFAULT FALSE,
-    opt_enabled BOOLEAN DEFAULT FALSE,
-    opt_base32 VARCHAR(100) DEFAULT NULL,
-    opt_auth_url VARCHAR(255) DEFAULT NULL,
+    otp_verified BOOLEAN DEFAULT FALSE,
+    otp_enabled BOOLEAN DEFAULT FALSE,
+    otp_base32 VARCHAR(100) DEFAULT NULL,
+    otp_auth_url VARCHAR(255) DEFAULT NULL,
     role VARCHAR(10) DEFAULT 'user' NOT NULL
   );
 
