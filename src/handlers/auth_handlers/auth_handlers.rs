@@ -1,7 +1,7 @@
 use super::messages::*;
 use crate::utils::{
     db::{AppState, DbActor},
-    jwt::encode_jwt,
+    jwt::{encode_jwt, Claims},
 };
 use actix::Addr;
 use actix_web::{
@@ -9,9 +9,9 @@ use actix_web::{
         time::{Duration, OffsetDateTime},
         Cookie,
     },
-    get, post,
+    delete, get, post,
     web::{Data, Json},
-    HttpResponse, Responder,
+    HttpMessage, HttpRequest, HttpResponse, Responder,
 };
 use serde::Deserialize;
 use utoipa::ToSchema;
@@ -154,4 +154,52 @@ pub async fn logout_user() -> impl Responder {
     HttpResponse::Ok()
         .cookie(cookie)
         .json(serde_json::json!({ "message": "user logged out" }))
+}
+
+#[utoipa::path(
+    path = "/auth/delete",
+    responses(
+        (status = 200, description = "Successfully deleted the user account."),
+        (status = 401, description = "Unauthorized: User is not logged in or token is invalid."),
+        (status = 500, description = "Failed to delete the user account due to an internal error."),
+    ),
+    security(
+        ("basic_auth" = [])
+    )
+)]
+#[delete("/delete")]
+pub async fn delete_user(state: Data<AppState>, req: HttpRequest) -> impl Responder {
+    let db: Addr<DbActor> = state.as_ref().db.clone();
+
+    let claims: Claims = match req.extensions().get::<Claims>() {
+        Some(claims) => claims.clone(),
+        None => {
+            return HttpResponse::Unauthorized()
+                .json(serde_json::json!({"message": "unauthorized access"}));
+        }
+    };
+
+    let now: OffsetDateTime = OffsetDateTime::now_utc();
+
+    let cookie = Cookie::build("token", "delete")
+        .path("/")
+        .http_only(true)
+        .secure(false)
+        .expires(now)
+        .finish();
+
+    let result = db.send(DeleteUser { user_id: claims.id }).await;
+
+    match result {
+        Ok(Ok(rows_deleted)) if rows_deleted > 0 => HttpResponse::Ok()
+            .cookie(cookie)
+            .json(serde_json::json!({ "message": "user deleted" })),
+
+        Ok(Ok(_)) => HttpResponse::NotFound().json(serde_json::json!({
+            "message": "user not found"
+        })),
+
+        _ => HttpResponse::InternalServerError()
+            .json(serde_json::json!({ "message": "failed to delete user" })),
+    }
 }

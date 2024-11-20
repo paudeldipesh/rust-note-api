@@ -23,6 +23,12 @@ pub struct LoginAndGetUser {
 }
 
 #[derive(Message)]
+#[rtype(result = "Result<usize, diesel::result::Error>")]
+pub struct DeleteUser {
+    pub user_id: i32,
+}
+
+#[derive(Message)]
 #[rtype(result = "QueryResult<User>")]
 pub struct OTPMessage {
     pub email: String,

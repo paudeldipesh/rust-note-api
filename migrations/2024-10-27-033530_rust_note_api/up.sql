@@ -23,5 +23,5 @@ CREATE TABLE
     created_by INT4 NOT NULL,
     created_on TIMESTAMPTZ,
     updated_on TIMESTAMPTZ,
-    FOREIGN KEY (created_by) REFERENCES users (id)
+    FOREIGN KEY (created_by) REFERENCES users (id) ON DELETE CASCADE
   );

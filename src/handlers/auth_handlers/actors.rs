@@ -67,6 +67,19 @@ impl Handler<LoginAndGetUser> for DbActor {
     }
 }
 
+impl Handler<DeleteUser> for DbActor {
+    type Result = Result<usize, diesel::result::Error>;
+
+    fn handle(&mut self, msg: DeleteUser, _ctx: &mut Self::Context) -> Self::Result {
+        let mut connection = self
+            .0
+            .get()
+            .expect("Delet User: Unable to establish connection");
+
+        diesel::delete(users.filter(id.eq(msg.user_id))).execute(&mut connection)
+    }
+}
+
 impl Handler<OTPMessage> for DbActor {
     type Result = QueryResult<User>;
 
