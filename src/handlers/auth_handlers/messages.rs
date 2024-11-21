@@ -23,6 +23,13 @@ pub struct LoginAndGetUser {
 }
 
 #[derive(Message)]
+#[rtype(result = "Result<(usize), diesel::result::Error>")]
+pub struct UpdateUserPassword {
+    pub user_id: i32,
+    pub new_password: String,
+}
+
+#[derive(Message)]
 #[rtype(result = "Result<usize, diesel::result::Error>")]
 pub struct DeleteUser {
     pub user_id: i32,

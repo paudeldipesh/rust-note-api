@@ -20,6 +20,7 @@ pub fn configuration(configure: &mut web::ServiceConfig) {
                 .service(token_validate_handler)
                 .service(disable_otp_handler)
                 .service(get_user)
-                .service(delete_user),
+                .service(delete_user)
+                .service(update_password),
         );
 }

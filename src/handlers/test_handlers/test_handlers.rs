@@ -15,7 +15,7 @@ struct MessageResponse {
 #[get("/")]
 pub async fn home() -> impl Responder {
     let response: MessageResponse = MessageResponse {
-        message: String::from("welcome to rust not api"),
+        message: String::from("welcome to rust note api"),
     };
 
     HttpResponse::Ok().json(response)

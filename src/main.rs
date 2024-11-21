@@ -69,6 +69,8 @@ async fn main() -> std::io::Result<()> {
         get_buy_quote,
         get_buy_information,
         get_swap_transaction,
+        update_password,
+        delete_user,
     ),
     components(
         schemas(
@@ -79,6 +81,7 @@ async fn main() -> std::io::Result<()> {
             UpdateNoteRequest,
             VerifyOTPRequest,
             ValidateOTPRequest,
+            UpdatePasswordRequest,
         )
     ),
     modifiers(&SecurityAddon)

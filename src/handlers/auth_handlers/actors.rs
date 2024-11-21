@@ -67,6 +67,21 @@ impl Handler<LoginAndGetUser> for DbActor {
     }
 }
 
+impl Handler<UpdateUserPassword> for DbActor {
+    type Result = Result<usize, diesel::result::Error>;
+
+    fn handle(&mut self, msg: UpdateUserPassword, _ctx: &mut Self::Context) -> Self::Result {
+        let mut connection = self
+            .0
+            .get()
+            .expect("Update User Password: Unable to establish connection");
+
+        diesel::update(users.filter(id.eq(msg.user_id)))
+            .set(password.eq(msg.new_password))
+            .execute(&mut connection)
+    }
+}
+
 impl Handler<DeleteUser> for DbActor {
     type Result = Result<usize, diesel::result::Error>;
 
@@ -74,7 +89,7 @@ impl Handler<DeleteUser> for DbActor {
         let mut connection = self
             .0
             .get()
-            .expect("Delet User: Unable to establish connection");
+            .expect("Delete User: Unable to establish connection");
 
         diesel::delete(users.filter(id.eq(msg.user_id))).execute(&mut connection)
     }

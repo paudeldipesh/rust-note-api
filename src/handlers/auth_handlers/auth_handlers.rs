@@ -134,6 +134,88 @@ pub async fn login_user(state: Data<AppState>, body: Json<LoginUserRequest>) -> 
     }
 }
 
+#[derive(Deserialize, ToSchema)]
+pub struct UpdatePasswordRequest {
+    #[schema(example = "random", required = true)]
+    old_password: String,
+    #[schema(example = "random", required = true)]
+    new_password: String,
+}
+#[utoipa::path(
+    path = "/auth/update-password",
+    request_body(
+        content = UpdatePasswordRequest,
+        description = "Request body containing old and new passwords.",
+    ),
+    responses(
+        (status = 200, description = "Password updated successfully."),
+        (status = 400, description = "Invalid old password."),
+        (status = 401, description = "Unauthorized access."),
+        (status = 500, description = "Failed to update the password due to an internal error."),
+    ),
+    security(
+        ("basic_auth" = [])
+    )
+)]
+#[post("/update-password")]
+pub async fn update_password(
+    state: Data<AppState>,
+    req: HttpRequest,
+    body: Json<UpdatePasswordRequest>,
+) -> impl Responder {
+    let db: Addr<DbActor> = state.as_ref().db.clone();
+
+    let claims: Claims = match req.extensions().get::<Claims>() {
+        Some(claims) => claims.clone(),
+        None => {
+            return HttpResponse::Unauthorized()
+                .json(serde_json::json!({"message": "unauthorized access"}));
+        }
+    };
+
+    match db
+        .send(LoginAndGetUser {
+            email: claims.email.clone(),
+            password: String::new(),
+        })
+        .await
+    {
+        Ok(Ok(user)) => {
+            if bcrypt::verify(&body.old_password, &user.password).unwrap_or(false) {
+                let hashed_password = match bcrypt::hash(&body.new_password, bcrypt::DEFAULT_COST) {
+                    Ok(hash) => hash,
+                    Err(_) => {
+                        return HttpResponse::InternalServerError().json(serde_json::json!({
+                            "message": "password hashing failed"
+                        }));
+                    }
+                };
+
+                match db
+                    .send(UpdateUserPassword {
+                        user_id: claims.id,
+                        new_password: hashed_password,
+                    })
+                    .await
+                {
+                    Ok(Ok(_)) => {
+                        HttpResponse::Ok().json(serde_json::json!({"message": "password updated"}))
+                    }
+                    _ => HttpResponse::InternalServerError()
+                        .json(serde_json::json!({"message": "failed to update password"})),
+                }
+            } else {
+                HttpResponse::BadRequest()
+                    .json(serde_json::json!({"message": "invalid old password"}))
+            }
+        }
+        Ok(Err(_)) => HttpResponse::InternalServerError()
+            .json(serde_json::json!({"message": "failed to retrieve user"})),
+        _ => HttpResponse::InternalServerError()
+            .json(serde_json::json!({"message": "internal server error"})),
+    }
+}
+
 #[utoipa::path(
     path = "/user/logout",
     responses(
